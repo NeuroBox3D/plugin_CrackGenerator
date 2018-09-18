@@ -1,3 +1,7 @@
+/*!
+ * \file plugin_main.cpp
+ * Registry for crack generator functions.
+ */
 #include "registry/registry.h"
 #include "common/ug_config.h"
 #include "common/error.h"

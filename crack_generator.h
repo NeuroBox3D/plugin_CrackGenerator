@@ -1,3 +1,6 @@
+/*!
+ * \file crack_generator.h
+ */
 #ifndef UG__PLUGINS__CRACK_GENERATOR__CRACK_GENERATOR_H
 #define  UG__PLUGINS__CRACK_GENERATOR__CRACK_GENERATOR_H
 

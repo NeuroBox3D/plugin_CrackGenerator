@@ -1,5 +1,5 @@
-/*
- * dendrite_generator.cpp
+/*!
+ * \file crack_generator.cpp
  *
  */
 
@@ -11,7 +11,8 @@
 #define UG_ENABLE_WARNINGS
 
 namespace ug {
-	/// Note: We could pre-refine the inner squares!
+	/// Note/TODO: We could pre-refine the inner squares!
+	/// TODO: Improve triangulation and tetrahedralization!
 	void BuildCrack
 	(
 		number crackInnerLength=0.2,
