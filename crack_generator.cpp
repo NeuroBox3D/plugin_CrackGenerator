@@ -91,7 +91,7 @@ namespace ug {
 
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_step_1.ugx");
-	    sh.set_default_subset_index(0);
+	    sh.set_default_subset_index(3);
 
 	    /// outermost square
 		number outerDistance = VecDistance(endPoint1, endPoint2);
@@ -123,16 +123,21 @@ namespace ug {
 		bottomRight = bottomLeft;
 		bottomRight.x() = bottomRight.x() + 2.0*squareOuterDiameter;
 
+	    sh.set_default_subset_index(7);
 		Vertex* v9 = *g.create<RegularVertex>();
 		Vertex* v10 = *g.create<RegularVertex>();
 		aaPos[v9] = topRight;
 		aaPos[v10] = bottomRight;
 
+	    sh.set_default_subset_index(5);
 		Edge* e9 = *g.create<RegularEdge>(EdgeDescriptor(v7, v9));
+	    sh.set_default_subset_index(6);
 		Edge* e10 = *g.create<RegularEdge>(EdgeDescriptor(v8, v10));
+	    sh.set_default_subset_index(7);
 		Edge* e11 = *g.create<RegularEdge>(EdgeDescriptor(v9, v10));
 
 		AssignSubsetColors(sh);
+	    sh.set_default_subset_index(0);
 		SaveGridToFile(g, sh, "crack_generator_step_2.ugx");
 
 		/// innermost square
@@ -214,14 +219,27 @@ namespace ug {
 		Edge* e20 = *g.create<RegularEdge>(EdgeDescriptor(v16, v18));
 		Edge* e21 = *g.create<RegularEdge>(EdgeDescriptor(v17, v18));
 
+		EraseEmptySubsets(sh); /// necessary since previously assigned outerSquare is empty because this compromises the boundary
+		sh.subset_info(0).name = "Inner square";
+		sh.subset_info(1).name = "Middle square";
+		sh.subset_info(2).name = "Outer square";
+		sh.subset_info(3).name = "Left boundary";
+		sh.subset_info(4).name = "Back boundary";
+		sh.subset_info(5).name = "Front boundary";
+		sh.subset_info(6).name = "Right boundary";
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_step_4.ugx");
+
 
 		/// Triangulate bottom surface
 		SelectSubsetElements<ug::Edge>(sel, sh, 0, true);
 		SelectSubsetElements<ug::Edge>(sel, sh, 1, true);
 		SelectSubsetElements<ug::Edge>(sel, sh, 2, true);
-		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, 3);
+		SelectSubsetElements<ug::Edge>(sel, sh, 3, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 4, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 5, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 6, true);
+		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, 7);
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_step_5.ugx");
 
@@ -232,23 +250,22 @@ namespace ug {
 		SelectSubsetElements<ug::Edge>(sel, sh, 1, true);
 		SelectSubsetElements<ug::Edge>(sel, sh, 2, true);
 		SelectSubsetElements<ug::Edge>(sel, sh, 3, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 4, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 5, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 6, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 7, true);
 		edges.assign(sel.edges_begin(), sel.edges_end());
 		Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
+		sh.subset_info(7).name = "Bottom boundary";
 
 		/// Triangulate top surface
-		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, 4);
-
+		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, 8);
+		sh.subset_info(8).name = "Top boundary";
 		AssignSubsetColors(sh);
-		sh.subset_info(0).name = "Inner square";
-		sh.subset_info(1).name = "Middle square";
-		sh.subset_info(2).name = "Outer square";
-		sh.subset_info(3).name = "Bottom surface";
-		sh.subset_info(4).name = "Top surface";
 		SaveGridToFile(g, sh, "crack_generator_step_6.ugx");
 
 		/// Tetrahedralize whole grid
 		Tetrahedralize(g, 5, false, false, aPosition, 1);
-		sh.subset_info(5).name = "Volumes";
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_step_7.ugx");
   }
