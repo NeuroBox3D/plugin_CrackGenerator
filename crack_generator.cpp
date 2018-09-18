@@ -100,17 +100,21 @@ namespace ug {
 
 	    /// outermost square
 		number outerDistance = VecDistance(endPoint1, endPoint2);
-		number outerHeight = 5 - outerDistance;
+
+		ug::vector3 centerOuter = endPoint1;
+		centerOuter.y() = centerOuter.y() + outerDistance / 2;
+		number squareOuterDiameter = VecDistance(centerOuter, aaPos[startVertex]);
+		number outerHeight = squareOuterDiameter;
+		outerHeight = squareOuterDiameter - outerDistance;
+
 		std::cout << "outerHeight: " << outerHeight << std::endl;
 
 		ug::vector3 topLeft, bottomLeft, topRight, bottomRight;
 		topLeft = endPoint1;
-		std::cout << "topLeft: " << topLeft << std::endl;
-		topLeft.y() = topLeft.y() - outerHeight / 2;
-		std::cout << "topLeft: " << topLeft << std::endl;
+		topLeft.y() = topLeft.y() - outerHeight;
 
 		bottomLeft = endPoint2;
-		bottomLeft.y() = bottomLeft.y() + outerHeight / 2;
+		bottomLeft.y() = bottomLeft.y() + outerHeight;
 
 		Vertex* v7 = *g.create<RegularVertex>();
 		Vertex* v8 = *g.create<RegularVertex>();
@@ -121,10 +125,10 @@ namespace ug {
 		Edge* e8 = *g.create<RegularEdge>(EdgeDescriptor(v6, v8));
 
 		topRight = topLeft;
-		topRight.x() = topRight.x() + outerHeight+outerDistance;
+		topRight.x() = topRight.x() + 2.0*squareOuterDiameter;
 
 		bottomRight = bottomLeft;
-		bottomRight.x() = bottomRight.x() + outerHeight+outerDistance;
+		bottomRight.x() = bottomRight.x() + 2.0*squareOuterDiameter;
 
 		Vertex* v9 = *g.create<RegularVertex>();
 		Vertex* v10 = *g.create<RegularVertex>();
