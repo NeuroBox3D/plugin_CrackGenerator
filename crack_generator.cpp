@@ -5,37 +5,31 @@
 
 #include "crack_generator.h"
 #include "lib_grid/lib_grid.h"
-#include "lib_grid/algorithms/remove_duplicates_util.h"
-#include "bridge/domain_bridges/selection_bridge.h"
-#include <algorithm>
-#include "../ProMesh/mesh.h"
-#include "../ProMesh/tools/grid_generation_tools.h"
-#include "../ProMesh/tools/remeshing_tools.h"
-#include "../ProMesh/tools/selection_tools.h"
-#include "../ProMesh/tools/new_tools.h"
-#include "../ProMesh/tools/subset_tools.h"
-#include "../ProMesh/tools/refinement_tools.h"
-#include "../ProMesh/tools/coordinate_transform_tools.h"
-#include "../ProMesh/tools/topology_tools.h"
+#include "lib_grid/algorithms/geom_obj_util/vertex_util.h"
+#include <cmath>
 
 #define UG_ENABLE_WARNINGS
 
-using namespace ug::promesh;
-
 namespace ug {
-	void BuildCrack() {
+	/// Note: We could pre-refine the inner squares!
+	void BuildCrack
+	(
+		number crackInnerLength=0.2,
+		number innerThickness=0.1,
+		number crackOuterLength=2.0,
+		number angle = 10
+	) {
 		Grid g;
 	    SubsetHandler sh(g);
 	    sh.set_default_subset_index(0);
 	    g.attach_to_vertices(aPosition);
+	    AInt aInt;
+	    g.attach_to_vertices(aInt);
+	    Grid::VertexAttachmentAccessor<AInt> aaIntVertex(g, aInt);
 
 	    Grid::VertexAttachmentAccessor<APosition> aaPos(g, aPosition);
 	    Selector sel(g);
 
-		number crackInnerLength = 0.2;
-		number crackOuterLength = 2.0;
-		number innerThickness = 0.1;
-		number angle = 10;
 		Vertex* startVertex = *g.create<RegularVertex>();
 		aaPos[startVertex] = ug::vector3(0, 0, 0);
 
@@ -107,7 +101,6 @@ namespace ug {
 		number outerHeight = squareOuterDiameter;
 		outerHeight = squareOuterDiameter - outerDistance;
 
-		std::cout << "outerHeight: " << outerHeight << std::endl;
 
 		ug::vector3 topLeft, bottomLeft, topRight, bottomRight;
 		topLeft = endPoint1;
@@ -144,13 +137,19 @@ namespace ug {
 
 		/// innermost square
 		number innerDistance = VecDistance(aaPos[v1], aaPos[v2]);
-		number innerHeight = 0.25 - innerDistance;
-		UG_COND_THROW(signbit(innerHeight), "inner height cannot be negative");
+
+		ug::vector3 centerInner = aaPos[v1];
+		centerInner.y() = centerInner.y() + innerDistance / 2;
+		number squareInnerDiameter = VecDistance(centerInner, aaPos[startVertex]);
+		number innerHeight = squareInnerDiameter;
+		innerHeight = squareInnerDiameter - innerDistance;
+
+		UG_COND_THROW(std::signbit(innerHeight), "inner height cannot be negative");
 
 		topLeft = aaPos[v1];
-		topLeft.y() = topLeft.y() - innerHeight / 2;
+		topLeft.y() = topLeft.y() - innerHeight;
 		bottomLeft = aaPos[v2];
-		bottomLeft.y() = bottomLeft.y() + innerHeight / 2;
+		bottomLeft.y() = bottomLeft.y() + innerHeight;
 
 		Vertex* v11 = *g.create<RegularVertex>();
 		Vertex* v12 = *g.create<RegularVertex>();
@@ -161,9 +160,9 @@ namespace ug {
 		Edge* e13 = *g.create<RegularEdge>(EdgeDescriptor(v2, v12));
 
 		topRight = topLeft;
-		topRight.x() = topRight.x() + innerHeight+innerDistance;
+		topRight.x() = topRight.x() + 2*squareInnerDiameter;
 		bottomRight = bottomLeft;
-		bottomRight.x() = bottomRight.x() + innerHeight+innerDistance;
+		bottomRight.x() = bottomRight.x() + 2*squareInnerDiameter;
 
 		Vertex* v13 = *g.create<RegularVertex>();
 		Vertex* v14 = *g.create<RegularVertex>();
@@ -180,13 +179,18 @@ namespace ug {
 		/// middle square
 	    sh.set_default_subset_index(1);
 		number middleDistance = VecDistance(aaPos[v3], aaPos[v4]);
-		number middleHeight = 0.50 - middleDistance;
-		UG_COND_THROW(signbit(middleHeight), "middle height cannot be negative");
+
+		ug::vector3 centerMiddle = aaPos[v3];
+		centerMiddle.y() = centerMiddle.y() + middleDistance / 2;
+		number squareMiddleDiameter = VecDistance(centerMiddle, aaPos[startVertex]);
+		number middleHeight = squareMiddleDiameter;
+		innerHeight = squareMiddleDiameter - middleDistance;
+		UG_COND_THROW(std::signbit(middleHeight), "middle height cannot be negative");
 
 		topLeft = aaPos[v3];
-		topLeft.y() = topLeft.y() - middleHeight / 2;
+		topLeft.y() = topLeft.y() - middleHeight;
 		bottomLeft = aaPos[v4];
-		bottomLeft.y() = bottomLeft.y() + middleHeight / 2;
+		bottomLeft.y() = bottomLeft.y() + middleHeight;
 
 		Vertex* v15 = *g.create<RegularVertex>();
 		Vertex* v16 = *g.create<RegularVertex>();
@@ -197,9 +201,9 @@ namespace ug {
 		Edge* e18 = *g.create<RegularEdge>(EdgeDescriptor(v4, v16));
 
 		topRight = topLeft;
-		topRight.x() = topRight.x() + middleHeight+middleDistance;
+		topRight.x() = topRight.x() + 2.0*squareMiddleDiameter;
 		bottomRight = bottomLeft;
-		bottomRight.x() = bottomRight.x() + middleHeight+middleDistance;
+		bottomRight.x() = bottomRight.x() + 2.0*squareMiddleDiameter;
 
 		Vertex* v17 = *g.create<RegularVertex>();
 		Vertex* v18 = *g.create<RegularVertex>();
@@ -212,5 +216,40 @@ namespace ug {
 
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_step_4.ugx");
+
+		/// Triangulate bottom surface
+		SelectSubsetElements<ug::Edge>(sel, sh, 0, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 1, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 2, true);
+		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, 3);
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_step_5.ugx");
+
+		/// Extrude towards top
+		ug::vector3 normal = ug::vector3(0, 0, 2*squareOuterDiameter);
+		std::vector<Edge*> edges;
+		SelectSubsetElements<ug::Edge>(sel, sh, 0, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 1, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 2, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 3, true);
+		edges.assign(sel.edges_begin(), sel.edges_end());
+		Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
+
+		/// Triangulate top surface
+		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, 4);
+
+		AssignSubsetColors(sh);
+		sh.subset_info(0).name = "Inner square";
+		sh.subset_info(1).name = "Middle square";
+		sh.subset_info(2).name = "Outer square";
+		sh.subset_info(3).name = "Bottom surface";
+		sh.subset_info(4).name = "Top surface";
+		SaveGridToFile(g, sh, "crack_generator_step_6.ugx");
+
+		/// Tetrahedralize whole grid
+		Tetrahedralize(g, 5, false, false, aPosition, 1);
+		sh.subset_info(5).name = "Volumes";
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_step_7.ugx");
   }
 }

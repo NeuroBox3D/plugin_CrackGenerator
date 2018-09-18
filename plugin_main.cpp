@@ -12,5 +12,5 @@ extern "C" UG_API void
 InitUGPlugin_CrackGenerator(ug::bridge::Registry* reg, string parentGroup)
 {
   string grp(parentGroup); grp.append("CrackGenerator/");
-  reg->add_function("BuildCrack", &ug::BuildCrack, grp);
+  reg->add_function("BuildCrack", &ug::BuildCrack, "", "crackInnerLength#innerThickness#crackOuterLength#angle (degree)", grp);
 }
