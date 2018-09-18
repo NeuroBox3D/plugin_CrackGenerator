@@ -102,7 +102,6 @@ namespace ug {
 		number outerHeight = squareOuterDiameter;
 		outerHeight = squareOuterDiameter - outerDistance;
 
-
 		ug::vector3 topLeft, bottomLeft, topRight, bottomRight;
 		topLeft = endPoint1;
 		topLeft.y() = topLeft.y() - outerHeight;
@@ -189,17 +188,17 @@ namespace ug {
 		UG_COND_THROW(std::signbit(middleHeight), "middle height cannot be negative");
 
 		topLeft = aaPos[v3];
-		topLeft.y() = topLeft.y() - middleHeight;
+		topLeft.y() = topLeft.y() + middleHeight;
 		bottomLeft = aaPos[v4];
-		bottomLeft.y() = bottomLeft.y() + middleHeight;
+		bottomLeft.y() = bottomLeft.y() - middleHeight;
 
 		Vertex* v15 = *g.create<RegularVertex>();
 		Vertex* v16 = *g.create<RegularVertex>();
 		aaPos[v15] = topLeft;
 		aaPos[v16] = bottomLeft;
 
-		Edge* e17 = *g.create<RegularEdge>(EdgeDescriptor(v3, v15));
-		Edge* e18 = *g.create<RegularEdge>(EdgeDescriptor(v4, v16));
+		Edge* e17 = *g.create<RegularEdge>(EdgeDescriptor(v4, v15));
+		Edge* e18 = *g.create<RegularEdge>(EdgeDescriptor(v3, v16));
 
 		topRight = topLeft;
 		topRight.x() = topRight.x() + 2.0*squareMiddleDiameter;
