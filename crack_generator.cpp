@@ -100,14 +100,14 @@ namespace ug {
 		centerOuter.y() = centerOuter.y() + outerDistance / 2;
 		number squareOuterDiameter = VecDistance(centerOuter, aaPos[startVertex]);
 		number outerHeight = squareOuterDiameter;
-		outerHeight = squareOuterDiameter - outerDistance;
+		outerHeight = 2*squareOuterDiameter - outerDistance;
 
 		ug::vector3 topLeft, bottomLeft, topRight, bottomRight;
 		topLeft = endPoint1;
-		topLeft.y() = topLeft.y() - outerHeight;
+		topLeft.y() = topLeft.y() - outerHeight/2;
 
 		bottomLeft = endPoint2;
-		bottomLeft.y() = bottomLeft.y() + outerHeight;
+		bottomLeft.y() = bottomLeft.y() + outerHeight/2;
 
 		Vertex* v7 = *g.create<RegularVertex>();
 		Vertex* v8 = *g.create<RegularVertex>();
@@ -142,14 +142,14 @@ namespace ug {
 		centerInner.y() = centerInner.y() + innerDistance / 2;
 		number squareInnerDiameter = VecDistance(centerInner, aaPos[startVertex]);
 		number innerHeight = squareInnerDiameter;
-		innerHeight = squareInnerDiameter - innerDistance;
+		innerHeight = 2*squareInnerDiameter - innerDistance;
 
 		UG_COND_THROW(std::signbit(innerHeight), "inner height cannot be negative");
 
 		topLeft = aaPos[v1];
-		topLeft.y() = topLeft.y() - innerHeight;
+		topLeft.y() = topLeft.y() - innerHeight/2;
 		bottomLeft = aaPos[v2];
-		bottomLeft.y() = bottomLeft.y() + innerHeight;
+		bottomLeft.y() = bottomLeft.y() + innerHeight/2;
 
 		Vertex* v11 = *g.create<RegularVertex>();
 		Vertex* v12 = *g.create<RegularVertex>();
@@ -184,21 +184,21 @@ namespace ug {
 		centerMiddle.y() = centerMiddle.y() + middleDistance / 2;
 		number squareMiddleDiameter = VecDistance(centerMiddle, aaPos[startVertex]);
 		number middleHeight = squareMiddleDiameter;
-		innerHeight = squareMiddleDiameter - middleDistance;
+		middleHeight = 2*squareMiddleDiameter - middleDistance;
 		UG_COND_THROW(std::signbit(middleHeight), "middle height cannot be negative");
 
 		topLeft = aaPos[v3];
-		topLeft.y() = topLeft.y() + middleHeight;
+		topLeft.y() = topLeft.y() - middleHeight/2;
 		bottomLeft = aaPos[v4];
-		bottomLeft.y() = bottomLeft.y() - middleHeight;
+		bottomLeft.y() = bottomLeft.y() + middleHeight/2;
 
 		Vertex* v15 = *g.create<RegularVertex>();
 		Vertex* v16 = *g.create<RegularVertex>();
 		aaPos[v15] = topLeft;
 		aaPos[v16] = bottomLeft;
 
-		Edge* e17 = *g.create<RegularEdge>(EdgeDescriptor(v4, v15));
-		Edge* e18 = *g.create<RegularEdge>(EdgeDescriptor(v3, v16));
+		Edge* e17 = *g.create<RegularEdge>(EdgeDescriptor(v3, v15));
+		Edge* e18 = *g.create<RegularEdge>(EdgeDescriptor(v4, v16));
 
 		topRight = topLeft;
 		topRight.x() = topRight.x() + 2.0*squareMiddleDiameter;
