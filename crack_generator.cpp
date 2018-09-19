@@ -6,6 +6,8 @@
 #include "crack_generator.h"
 #include "lib_grid/lib_grid.h"
 #include "lib_grid/algorithms/geom_obj_util/vertex_util.h"
+#include "lib_grid/algorithms/remeshing/delaunay_triangulation.h"
+#include "lib_grid/refinement/regular_refinement.h"
 #include <cmath>
 
 #define UG_ENABLE_WARNINGS
@@ -32,7 +34,7 @@ namespace ug {
 	    Selector sel(g);
 
 		Vertex* startVertex = *g.create<RegularVertex>();
-		aaPos[startVertex] = ug::vector3(0, 0, 0);
+		aaPos[startVertex] = ug::vector3(0, 0, 0); /// crack tip
 
 		ug::vector3 endPoint1, endPoint2;
 		endPoint1.x() = -innerThickness * cos(deg_to_rad(angle));
@@ -51,7 +53,6 @@ namespace ug {
 		Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(startVertex, v1));
 		Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(startVertex, v2));
 
-
 	    sh.set_default_subset_index(1);
 
 		endPoint1.x() = -crackInnerLength * cos(deg_to_rad(angle));
@@ -69,7 +70,6 @@ namespace ug {
 
 		Edge* e3 = *g.create<RegularEdge>(EdgeDescriptor(v1, v3));
 		Edge* e4 = *g.create<RegularEdge>(EdgeDescriptor(v2, v4));
-
 
 	    sh.set_default_subset_index(2);
 
@@ -220,6 +220,8 @@ namespace ug {
 		Edge* e21 = *g.create<RegularEdge>(EdgeDescriptor(v17, v18));
 
 		EraseEmptySubsets(sh); /// necessary since previously assigned outerSquare is empty because this compromises the boundary
+
+		/// Rename subsets
 		sh.subset_info(0).name = "Inner square";
 		sh.subset_info(1).name = "Middle square";
 		sh.subset_info(2).name = "Outer square";
@@ -230,36 +232,29 @@ namespace ug {
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_step_4.ugx");
 
-
 		/// Triangulate bottom surface
-		SelectSubsetElements<ug::Edge>(sel, sh, 0, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 1, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 2, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 3, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 4, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 5, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 6, true);
+		for (size_t i = 0; i < sh.num_subsets(); i++) {
+			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
+		}
 		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, 7);
+		SelectSubsetElements<ug::Face>(sel, sh, 7, true);
+		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 10);
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_step_5.ugx");
 
 		/// Extrude towards top
 		ug::vector3 normal = ug::vector3(0, 0, 2*squareOuterDiameter);
 		std::vector<Edge*> edges;
-		SelectSubsetElements<ug::Edge>(sel, sh, 0, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 1, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 2, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 3, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 4, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 5, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 6, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 7, true);
+		for (size_t i = 0; i < sh.num_subsets(); i++) {
+				SelectSubsetElements<ug::Edge>(sel, sh, i, true);
+		}
 		edges.assign(sel.edges_begin(), sel.edges_end());
 		Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
 		sh.subset_info(7).name = "Bottom boundary";
 
 		/// Triangulate top surface
 		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, 8);
+		QualityGridGeneration(g, sh.begin<Face>(8), sh.end<Face>(8), aaPos, 30.0);
 		sh.subset_info(8).name = "Top boundary";
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_step_6.ugx");
