@@ -13,9 +13,9 @@
 #define UG_ENABLE_WARNINGS
 
 namespace ug {
-	/// Note/TODO: We could pre-refine the inner squares!
-	/// TODO: Improve triangulation and tetrahedralization!
-	void BuildCrack
+	/// TODO: Pre-refine the inner MD square
+	/// TODO: Improve triangulation and tetrahedralization
+	void BuildCompleteCrack
 	(
 		number crackInnerLength=0.2,
 		number innerThickness=0.1,
@@ -263,5 +263,117 @@ namespace ug {
 		Tetrahedralize(g, 5, false, false, aPosition, 1);
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_step_7.ugx");
-  }
+	}
+
+	void BuildSimpleCrack
+	(
+		number height,
+		number width,
+		number depth,
+		number thickness,
+		size_t refinements,
+		number spacing
+	) {
+		/// Algorithm:
+		/// 1. Create line from bottomLeft to bottomRight
+		/// 2. Create line from bottomLeft to leftMDLayer and leftMDLayer to topLeft
+		/// 3. Create line from bottomRight to rightMDLayer and rightMDLayer to topRight
+		/// 4. Create line from rightMDLayer to leftMDLayer and topRight to topLeft
+		UG_COND_THROW(thickness==height, "Thickness can't be the same as height.");
+
+		ug::vector3 bottomLeft = ug::vector3(0, 0, 0);
+		ug::vector3 bottomRight = ug::vector3(width, 0, 0);
+		ug::vector3 leftMDLayer = ug::vector3(0, thickness, 0);
+		ug::vector3 rightMDLayer = ug::vector3(width, thickness, 0);
+		ug::vector3 topLeft = ug::vector3(0, height, 0);
+		ug::vector3 topRight = ug::vector3(width, height, 0);
+
+		Grid g;
+	    SubsetHandler sh(g);
+	    sh.set_default_subset_index(0);
+	    g.attach_to_vertices(aPosition);
+	    AInt aInt;
+	    g.attach_to_vertices(aInt);
+	    Grid::VertexAttachmentAccessor<AInt> aaIntVertex(g, aInt);
+
+	    Grid::VertexAttachmentAccessor<APosition> aaPos(g, aPosition);
+	    Selector sel(g);
+
+		Vertex* bottomLeftVertex = *g.create<RegularVertex>();
+		aaPos[bottomLeftVertex] = bottomLeft;
+
+		Vertex* bottomRightVertex = *g.create<RegularVertex>();
+		aaPos[bottomRightVertex] = bottomRight;
+
+		Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, bottomRightVertex));
+
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_1.ugx");
+
+		Vertex* leftMDLayerVertex = *g.create<RegularVertex>();
+		aaPos[leftMDLayerVertex] = leftMDLayer;
+
+		Vertex* rightMDLayerVertex = *g.create<RegularVertex>();
+		aaPos[rightMDLayerVertex] = rightMDLayer;
+
+		Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, leftMDLayerVertex));
+		Edge* e3 = *g.create<RegularEdge>(EdgeDescriptor(bottomRightVertex, rightMDLayerVertex));
+
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_2.ugx");
+
+		sh.set_default_subset_index(1);
+		Vertex* topLeftVertex = *g.create<RegularVertex>();
+		aaPos[topLeftVertex] = topLeft;
+
+		Vertex* topRightVertex = *g.create<RegularVertex>();
+		aaPos[topRightVertex] = topRight;
+
+		Edge* e4 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, topLeftVertex));
+
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_3.ugx");
+
+		Edge* e5 = *g.create<RegularEdge>(EdgeDescriptor(rightMDLayerVertex, topRightVertex));
+		Edge* e6 = *g.create<RegularEdge>(EdgeDescriptor(topLeftVertex, topRightVertex));
+
+		sh.set_default_subset_index(0);
+		Edge* e7 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, rightMDLayerVertex));
+
+		for (size_t i = 0; i < refinements; i++) {
+			Refine(g, sel);
+		}
+		sh.set_default_subset_index(0);
+
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_4.ugx");
+
+		/// Triangulate bottom surface
+		SelectSubsetElements<ug::Edge>(sel, sh, 0, true);
+		SelectSubsetElements<ug::Edge>(sel, sh, 1, true);
+		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, 2);
+		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
+
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_5.ugx");
+
+		ug::vector3 normal = ug::vector3(0, 0, depth);
+		std::vector<Edge*> edges;
+		for (size_t i = 0; i < sh.num_subsets(); i++) {
+			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
+		}
+		edges.assign(sel.edges_begin(), sel.edges_end());
+		Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
+
+		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, 3);
+		QualityGridGeneration(g, sh.begin<Face>(3), sh.end<Face>(3), aaPos, 30.0);
+
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_6.ugx");
+
+		/// 5. TODO: Repeat this, but change orientation, e.g. bottomRight = (width, -spacing, 0) and bottomLeft = (0, -spacing, 0)
+		/// Note: Can wrap step 1-4 in function and supply orientation vector -> give also additional parameter subset index offset. done!
+
+		/// 6. TODO: Connect bottomRight vertices and bottomLeft vertices by an edge
+	}
 }
