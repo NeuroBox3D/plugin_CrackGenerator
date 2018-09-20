@@ -265,6 +265,7 @@ namespace ug {
 		SaveGridToFile(g, sh, "crack_generator_step_7.ugx");
 	}
 
+	/// TODO: duplicate rectangle in other direction and connect
 	void BuildSimpleCrack
 	(
 		number height,
