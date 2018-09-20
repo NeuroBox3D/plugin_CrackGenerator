@@ -265,7 +265,88 @@ namespace ug {
 		SaveGridToFile(g, sh, "crack_generator_step_7.ugx");
 	}
 
-	/// TODO: duplicate rectangle in other direction and connect
+
+	void create_rect
+	(
+		ug::vector3 bottomLeft,
+		ug::vector3 bottomRight,
+		ug::vector3 leftMDLayer,
+		ug::vector3 rightMDLayer,
+		ug::vector3 topLeft,
+		ug::vector3 topRight,
+		Grid& g,
+		SubsetHandler& sh,
+		Grid::VertexAttachmentAccessor<APosition>& aaPos,
+		AInt& aInt,
+		size_t refinements,
+		Selector& sel,
+		number depth,
+		size_t si_offset,
+		std::vector<ug::Vertex*>& verts
+	) {
+		std::stringstream step;
+		sh.set_default_subset_index(si_offset);
+		Vertex* bottomLeftVertex = *g.create<RegularVertex>();
+		aaPos[bottomLeftVertex] = bottomLeft;
+
+		Vertex* bottomRightVertex = *g.create<RegularVertex>();
+		aaPos[bottomRightVertex] = bottomRight;
+
+		Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, bottomRightVertex));
+
+		AssignSubsetColors(sh);
+		step << "crack_generator_simple_step_" << si_offset+1 << ".ugx";
+		SaveGridToFile(g, sh, step.str().c_str());
+		step.str(""); step.clear();
+
+		Vertex* leftMDLayerVertex = *g.create<RegularVertex>();
+		aaPos[leftMDLayerVertex] = leftMDLayer;
+
+		Vertex* rightMDLayerVertex = *g.create<RegularVertex>();
+		aaPos[rightMDLayerVertex] = rightMDLayer;
+
+		Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, leftMDLayerVertex));
+		Edge* e3 = *g.create<RegularEdge>(EdgeDescriptor(bottomRightVertex, rightMDLayerVertex));
+
+		AssignSubsetColors(sh);
+		step << "crack_generator_simple_step_" << si_offset+2 << ".ugx";
+		SaveGridToFile(g, sh, step.str().c_str());
+		step.str(""); step.clear();
+
+		sh.set_default_subset_index(1+si_offset);
+		Vertex* topLeftVertex = *g.create<RegularVertex>();
+		aaPos[topLeftVertex] = topLeft;
+
+		Vertex* topRightVertex = *g.create<RegularVertex>();
+		aaPos[topRightVertex] = topRight;
+
+		Edge* e4 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, topLeftVertex));
+
+		AssignSubsetColors(sh);
+		step << "crack_generator_simple_step_" << si_offset+3 << ".ugx";
+		SaveGridToFile(g, sh, step.str().c_str());
+		step.str(""); step.clear();
+
+		Edge* e5 = *g.create<RegularEdge>(EdgeDescriptor(rightMDLayerVertex, topRightVertex));
+		Edge* e6 = *g.create<RegularEdge>(EdgeDescriptor(topLeftVertex, topRightVertex));
+
+		sh.set_default_subset_index(si_offset);
+		Edge* e7 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, rightMDLayerVertex));
+
+		for (size_t i = 0; i < refinements; i++) {
+			Refine(g, sel);
+		}
+		sh.set_default_subset_index(si_offset);
+
+		AssignSubsetColors(sh);
+		step << "crack_generator_simple_step_" << si_offset+4 << ".ugx";
+		SaveGridToFile(g, sh, step.str().c_str());
+		step.str(""); step.clear();
+
+		verts.push_back(bottomLeftVertex);
+		verts.push_back(bottomRightVertex);
+	}
+
 	void BuildSimpleCrack
 	(
 		number height,
@@ -282,13 +363,6 @@ namespace ug {
 		/// 4. Create line from rightMDLayer to leftMDLayer and topRight to topLeft
 		UG_COND_THROW(thickness==height, "Thickness can't be the same as height.");
 
-		ug::vector3 bottomLeft = ug::vector3(0, 0, 0);
-		ug::vector3 bottomRight = ug::vector3(width, 0, 0);
-		ug::vector3 leftMDLayer = ug::vector3(0, thickness, 0);
-		ug::vector3 rightMDLayer = ug::vector3(width, thickness, 0);
-		ug::vector3 topLeft = ug::vector3(0, height, 0);
-		ug::vector3 topRight = ug::vector3(width, height, 0);
-
 		Grid g;
 	    SubsetHandler sh(g);
 	    sh.set_default_subset_index(0);
@@ -300,81 +374,61 @@ namespace ug {
 	    Grid::VertexAttachmentAccessor<APosition> aaPos(g, aPosition);
 	    Selector sel(g);
 
-		Vertex* bottomLeftVertex = *g.create<RegularVertex>();
-		aaPos[bottomLeftVertex] = bottomLeft;
+	    //// First rectangle
+   		ug::vector3 bottomLeft = ug::vector3(0, 0, 0);
+		ug::vector3 bottomRight = ug::vector3(width, 0, 0);
+		ug::vector3 leftMDLayer = ug::vector3(0, thickness, 0);
+		ug::vector3 rightMDLayer = ug::vector3(width, thickness, 0);
+		ug::vector3 topLeft = ug::vector3(0, height, 0);
+		ug::vector3 topRight = ug::vector3(width, height, 0);
+		size_t si_offset = 0;
+		std::vector<ug::Vertex*> verts;
+		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, refinements, sel, depth, si_offset, verts);
+		si_offset = 3;
 
-		Vertex* bottomRightVertex = *g.create<RegularVertex>();
-		aaPos[bottomRightVertex] = bottomRight;
+		/// Second rectangle
+   		bottomLeft = ug::vector3(0, -spacing, 0);
+		bottomRight = ug::vector3(width, -spacing, 0);
+		leftMDLayer = ug::vector3(0, -spacing-thickness, 0);
+		rightMDLayer = ug::vector3(width, -spacing-thickness, 0);
+		topLeft = ug::vector3(0, -spacing-height, 0);
+		topRight = ug::vector3(width, -spacing-height, 0);
+		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, refinements, sel, depth, si_offset, verts);
 
-		Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, bottomRightVertex));
-
-		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_1.ugx");
-
-		Vertex* leftMDLayerVertex = *g.create<RegularVertex>();
-		aaPos[leftMDLayerVertex] = leftMDLayer;
-
-		Vertex* rightMDLayerVertex = *g.create<RegularVertex>();
-		aaPos[rightMDLayerVertex] = rightMDLayer;
-
-		Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, leftMDLayerVertex));
-		Edge* e3 = *g.create<RegularEdge>(EdgeDescriptor(bottomRightVertex, rightMDLayerVertex));
-
-		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_2.ugx");
-
-		sh.set_default_subset_index(1);
-		Vertex* topLeftVertex = *g.create<RegularVertex>();
-		aaPos[topLeftVertex] = topLeft;
-
-		Vertex* topRightVertex = *g.create<RegularVertex>();
-		aaPos[topRightVertex] = topRight;
-
-		Edge* e4 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, topLeftVertex));
+		/// Connect rectangles
+		sh.set_default_subset_index(2*si_offset);
+		ug::Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(verts[0], verts[2]));
+		ug::Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(verts[1], verts[3]));
 
 		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_3.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_9.ugx");
 
-		Edge* e5 = *g.create<RegularEdge>(EdgeDescriptor(rightMDLayerVertex, topRightVertex));
-		Edge* e6 = *g.create<RegularEdge>(EdgeDescriptor(topLeftVertex, topRightVertex));
-
-		sh.set_default_subset_index(0);
-		Edge* e7 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, rightMDLayerVertex));
-
-		for (size_t i = 0; i < refinements; i++) {
-			Refine(g, sel);
+		/// Triangulate
+		for (size_t i = 0; i < sh.num_subsets(); i++) {
+			SelectSubsetElements<ug::Vertex>(sel, sh, i, true);
+			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
-		sh.set_default_subset_index(0);
-
-		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_4.ugx");
-
-		/// Triangulate bottom surface
-		SelectSubsetElements<ug::Edge>(sel, sh, 0, true);
-		SelectSubsetElements<ug::Edge>(sel, sh, 1, true);
-		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, 2);
+		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, sh.num_subsets());
 		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
 
 		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_5.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_10.ugx");
 
 		ug::vector3 normal = ug::vector3(0, 0, depth);
 		std::vector<Edge*> edges;
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
+
+		/// Extrude
 		edges.assign(sel.edges_begin(), sel.edges_end());
 		Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
 
-		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, 3);
+		/// Triangulate
+		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, sh.num_subsets());
 		QualityGridGeneration(g, sh.begin<Face>(3), sh.end<Face>(3), aaPos, 30.0);
 
 		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_6.ugx");
-
-		/// 5. TODO: Repeat this, but change orientation, e.g. bottomRight = (width, -spacing, 0) and bottomLeft = (0, -spacing, 0)
-		/// Note: Can wrap step 1-4 in function and supply orientation vector -> give also additional parameter subset index offset. done!
-
-		/// 6. TODO: Connect bottomRight vertices and bottomLeft vertices by an edge
+		SaveGridToFile(g, sh, "crack_generator_simple_step_final.ugx");
 	}
 }
