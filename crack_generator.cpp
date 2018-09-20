@@ -15,6 +15,7 @@
 namespace ug {
 	/// TODO: Pre-refine the inner MD square
 	/// TODO: Improve triangulation and tetrahedralization
+	/// BUILDCOMPLETECRACK
 	void BuildCompleteCrack
 	(
 		number crackInnerLength=0.2,
@@ -265,7 +266,7 @@ namespace ug {
 		SaveGridToFile(g, sh, "crack_generator_step_7.ugx");
 	}
 
-
+	/// CREATE_RECT
 	void create_rect
 	(
 		ug::vector3 bottomLeft,
@@ -347,6 +348,7 @@ namespace ug {
 		verts.push_back(bottomRightVertex);
 	}
 
+	/// BUILDSIMPLECRACK
 	void BuildSimpleCrack
 	(
 		number height,
@@ -395,7 +397,7 @@ namespace ug {
 		topRight = ug::vector3(width, -spacing-height, 0);
 		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, refinements, sel, depth, si_offset, verts);
 
-		/// Connect rectangles
+		/// Connect the two rectangles
 		sh.set_default_subset_index(2*si_offset);
 		ug::Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(verts[0], verts[2]));
 		ug::Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(verts[1], verts[3]));
@@ -403,31 +405,30 @@ namespace ug {
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_9.ugx");
 
-		/// Triangulate
+		/// Triangulate bottom
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Vertex>(sel, sh, i, true);
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
 		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, sh.num_subsets());
 		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
-
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_10.ugx");
 
+		/// Extrude
 		ug::vector3 normal = ug::vector3(0, 0, depth);
 		std::vector<Edge*> edges;
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
-
-		/// Extrude
 		edges.assign(sel.edges_begin(), sel.edges_end());
 		Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_11.ugx");
 
-		/// Triangulate
+		/// Triangulate top
 		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, sh.num_subsets());
 		QualityGridGeneration(g, sh.begin<Face>(3), sh.end<Face>(3), aaPos, 30.0);
-
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_final.ugx");
 	}
