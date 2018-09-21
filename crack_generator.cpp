@@ -405,8 +405,8 @@ namespace ug {
 		rightMDLayer = ug::vector3(width, -spacing-thickness, 0);
 		topLeft = ug::vector3(0, -spacing-height, 0);
 		topRight = ug::vector3(width, -spacing-height, 0);
-		boxes.push_back(std::make_pair(leftMDLayer, bottomRight));
 		boxes.push_back(std::make_pair(topLeft, rightMDLayer));
+		boxes.push_back(std::make_pair(leftMDLayer, bottomRight));
 		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, refinements, sel, depth, si_offset, verts);
 
 		/// Connect the two rectangles
@@ -494,11 +494,39 @@ namespace ug {
 
 		/// Tetrahedralize whole grid
 		Tetrahedralize(g, 10, true, true, aPosition, 1);
+		EraseEmptySubsets(sh);
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_14.ugx");
 
+		/// Reassign the elements in the layers to subsets (uses ordering from above)
+		for (size_t i = 0; i < boxes.size(); i++) {
+			sel.clear();
+			SelectSubsetElements<Volume>(sel, sh, siFaces, true);
+			Selector::traits<Volume>::iterator fit = sel.volumes_begin();
+			Selector::traits<Volume>::iterator fit_end = sel.volumes_end();
+			ug::vector3 min, max;
+			min = boxes[i].first;
+			min.z() = -depth;
+			max = boxes[i].second;
+			max.z() = depth;
+			Selector sel2(g);
+			for (; fit != fit_end; ++fit) {
+				if(BoxBoundProbe(CalculateCenter(*fit, aaPos), min, max)) {
+					sel2.select(*fit);
+				}
+			}
+			CloseSelection(sel2);
+			AssignSelectionToSubset(sel2, sh, i);
+			sel2.clear();
+		}
+
+		sh.subset_info(0).name = "FE1";
+		sh.subset_info(1).name = "BD1";
+		sh.subset_info(2).name = "FE2";
+		sh.subset_info(3).name = "BD";
+		sh.subset_info(4).name = "MD";
+
 		/// Save final grid after optimization
-		/// TODO: reassign volumes appropriately to subsets
 		EraseEmptySubsets(sh);
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_final.ugx");
