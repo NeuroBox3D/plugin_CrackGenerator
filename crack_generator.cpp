@@ -523,11 +523,48 @@ namespace ug {
 		sh.subset_info(0).name = "FE1";
 		sh.subset_info(1).name = "BD1";
 		sh.subset_info(2).name = "FE2";
-		sh.subset_info(3).name = "BD";
+		sh.subset_info(3).name = "BD2";
 		sh.subset_info(4).name = "MD";
 
-		/// Save final grid after optimization
+		/// Reassign top boundary
+		sel.clear();
+		SelectSubsetElements<Face>(sel, sh, 0, true);
+		Selector::traits<Face>::iterator fit = sel.faces_begin();
+		Selector::traits<Face>::iterator fit_end = sel.faces_end();
+		ug::vector3 min, max;
+		min = ug::vector3(0, height, 0);
+		max = ug::vector3(width, height, depth);
+		Selector sel2(g);
+		for (; fit != fit_end; ++fit) {
+			if(BoxBoundProbe(CalculateCenter(*fit, aaPos), min, max)) {
+				sel2.select(*fit);
+			}
+		}
+		CloseSelection(sel2);
+		AssignSelectionToSubset(sel2, sh, sh.num_subsets());
+		sel2.clear();
+
+		/// Reassign bottom boundary
+		sel.clear();
+		SelectSubsetElements<Face>(sel, sh, 2, true);
+		fit = sel.faces_begin();
+		fit_end = sel.faces_end();
+		min = ug::vector3(0, -height-spacing, 0);
+		max = ug::vector3(width, -height-spacing, depth);
+		for (; fit != fit_end; ++fit) {
+			if(BoxBoundProbe(CalculateCenter(*fit, aaPos), min, max)) {
+				sel2.select(*fit);
+			}
+		}
+		CloseSelection(sel2);
+		AssignSelectionToSubset(sel2, sh, sh.num_subsets());
+		sel2.clear();
+
 		EraseEmptySubsets(sh);
+		sh.subset_info(5).name = "Top";
+		sh.subset_info(6).name = "Bottom";
+
+		/// Save final grid after optimization
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_final.ugx");
 
