@@ -569,6 +569,9 @@ namespace ug {
 		/// Save final grid after optimization
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_final.ugx");
+
+		UG_COND_THROW(sh.num_subsets() != 7, "Number of subsets not seven (7). "
+				"Something must have gone wrong.")
 		}
 	}
 }
