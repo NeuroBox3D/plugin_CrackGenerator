@@ -13,9 +13,11 @@
 #define UG_ENABLE_WARNINGS
 
 namespace ug {
+	////////////////////////////////////////////////////////////////////////////////
+	/// BUILDCOMPLETECRACK
+	////////////////////////////////////////////////////////////////////////////////
 	/// TODO: Pre-refine the inner MD square
 	/// TODO: Improve triangulation and tetrahedralization
-	/// BUILDCOMPLETECRACK
 	void BuildCompleteCrack
 	(
 		number crackInnerLength=0.2,
@@ -266,7 +268,9 @@ namespace ug {
 		SaveGridToFile(g, sh, "crack_generator_step_7.ugx");
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
 	/// CREATE_RECT
+	////////////////////////////////////////////////////////////////////////////////
 	void create_rect
 	(
 		ug::vector3 bottomLeft,
@@ -348,7 +352,10 @@ namespace ug {
 		verts.push_back(bottomRightVertex);
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
 	/// BUILDSIMPLECRACK
+	////////////////////////////////////////////////////////////////////////////////
+	/// TODO: Pre-refine the inner MD square
 	void BuildSimpleCrack
 	(
 		number height,
@@ -383,6 +390,9 @@ namespace ug {
 		ug::vector3 rightMDLayer = ug::vector3(width, thickness, 0);
 		ug::vector3 topLeft = ug::vector3(0, height, 0);
 		ug::vector3 topRight = ug::vector3(width, height, 0);
+		std::vector<std::pair<ug::vector3, ug::vector3> > boxes;
+		boxes.push_back(std::make_pair(leftMDLayer, topRight));
+		boxes.push_back(std::make_pair(bottomLeft, rightMDLayer));
 		size_t si_offset = 0;
 		std::vector<ug::Vertex*> verts;
 		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, refinements, sel, depth, si_offset, verts);
@@ -395,25 +405,52 @@ namespace ug {
 		rightMDLayer = ug::vector3(width, -spacing-thickness, 0);
 		topLeft = ug::vector3(0, -spacing-height, 0);
 		topRight = ug::vector3(width, -spacing-height, 0);
+		boxes.push_back(std::make_pair(leftMDLayer, bottomRight));
+		boxes.push_back(std::make_pair(topLeft, rightMDLayer));
 		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, refinements, sel, depth, si_offset, verts);
 
 		/// Connect the two rectangles
 		sh.set_default_subset_index(2*si_offset);
 		ug::Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(verts[0], verts[2]));
 		ug::Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(verts[1], verts[3]));
+		boxes.push_back(std::make_pair(ug::vector3(0, -spacing, 0), ug::vector3(width, 0, 0)));
 
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_9.ugx");
 
 		/// Triangulate bottom
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
-			SelectSubsetElements<ug::Vertex>(sel, sh, i, true);
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
 		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, sh.num_subsets());
-		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
+
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_10.ugx");
+
+		/// Reassign the elements in the layers to subsets -> start beyond the current subsets, thus this ordering is the same as below
+		size_t siFaces = sh.num_subsets()-1;
+		for (size_t i = 0; i < boxes.size(); i++) {
+			sel.clear();
+			SelectSubsetElements<Face>(sel, sh, siFaces, true);
+			Selector::traits<Face>::iterator fit = sel.faces_begin();
+			Selector::traits<Face>::iterator fit_end = sel.faces_end();
+			ug::vector3 min, max;
+			min = boxes[i].first;
+			max = boxes[i].second;
+			size_t si = sh.num_subsets();
+			Selector sel2(g);
+			for (; fit != fit_end; ++fit) {
+				if(BoxBoundProbe(CalculateCenter(*fit, aaPos), min, max)) {
+					sel2.select(*fit);
+				}
+			}
+			CloseSelection(sel2);
+			AssignSelectionToSubset(sel2, sh, si);
+			sel2.clear();
+		}
+		EraseEmptySubsets(sh);
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_11.ugx");
 
 		/// Extrude
 		ug::vector3 normal = ug::vector3(0, 0, depth);
@@ -424,12 +461,47 @@ namespace ug {
 		edges.assign(sel.edges_begin(), sel.edges_end());
 		Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
 		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_11.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_12.ugx");
 
 		/// Triangulate top
 		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, sh.num_subsets());
-		QualityGridGeneration(g, sh.begin<Face>(3), sh.end<Face>(3), aaPos, 30.0);
+		AssignSubsetColors(sh);
+		EraseEmptySubsets(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_13.ugx");
+
+		siFaces = sh.num_subsets()-1;
+		/// Reassign the elements in the layers to subsets (uses ordering from above)
+		for (size_t i = 0; i < boxes.size(); i++) {
+			sel.clear();
+			SelectSubsetElements<Face>(sel, sh, siFaces, true);
+			Selector::traits<Face>::iterator fit = sel.faces_begin();
+			Selector::traits<Face>::iterator fit_end = sel.faces_end();
+			ug::vector3 min, max;
+			min = boxes[i].first;
+			min.z() = depth;
+			max = boxes[i].second;
+			max.z() = depth;
+			Selector sel2(g);
+			for (; fit != fit_end; ++fit) {
+				if(BoxBoundProbe(CalculateCenter(*fit, aaPos), min, max)) {
+					sel2.select(*fit);
+				}
+			}
+			CloseSelection(sel2);
+			AssignSelectionToSubset(sel2, sh, i);
+			sel2.clear();
+		}
+
+		/// Tetrahedralize whole grid
+		Tetrahedralize(g, 10, true, true, aPosition, 1);
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_14.ugx");
+
+		/// Save final grid after optimization
+		/// TODO: reassign volumes appropriately to subsets
+		EraseEmptySubsets(sh);
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_final.ugx");
+
 	}
 }
