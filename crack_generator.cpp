@@ -1,6 +1,7 @@
 /*!
  * \file crack_generator.cpp
- *
+ * Author: Stephan Grein
+ * Created on: 09/18/2018
  */
 
 #include "crack_generator.h"
@@ -13,18 +14,19 @@
 #define UG_ENABLE_WARNINGS
 
 namespace ug {
-	////////////////////////////////////////////////////////////////////////////////
-	/// BUILDCOMPLETECRACK
-	////////////////////////////////////////////////////////////////////////////////
-	/// TODO: Pre-refine the inner MD square
-	/// TODO: Improve triangulation and tetrahedralization
-	void BuildCompleteCrack
-	(
-		number crackInnerLength=0.2,
-		number innerThickness=0.1,
-		number crackOuterLength=2.0,
-		number angle = 10
-	) {
+	namespace crack_generator {
+		////////////////////////////////////////////////////////////////////////////////
+		/// BUILDCOMPLETECRACK
+		////////////////////////////////////////////////////////////////////////////////
+		/// TODO: Pre-refine the inner MD square
+		/// TODO: Improve triangulation and tetrahedralization
+		void BuildCompleteCrack
+		(
+			number crackInnerLength=0.2,
+			number innerThickness=0.1,
+			number crackOuterLength=2.0,
+			number angle = 10
+		) {
 		Grid g;
 	    SubsetHandler sh(g);
 	    sh.set_default_subset_index(0);
@@ -350,21 +352,21 @@ namespace ug {
 
 		verts.push_back(bottomLeftVertex);
 		verts.push_back(bottomRightVertex);
-	}
+		}
 
-	////////////////////////////////////////////////////////////////////////////////
-	/// BUILDSIMPLECRACK
-	////////////////////////////////////////////////////////////////////////////////
-	/// TODO: Pre-refine the inner MD square
-	void BuildSimpleCrack
-	(
-		number height,
-		number width,
-		number depth,
-		number thickness,
-		size_t refinements,
-		number spacing
-	) {
+		////////////////////////////////////////////////////////////////////////////////
+		/// BUILDSIMPLECRACK
+		////////////////////////////////////////////////////////////////////////////////
+		/// TODO: Pre-refine the inner MD square
+		void BuildSimpleCrack
+		(
+			number height,
+			number width,
+			number depth,
+			number thickness,
+			size_t refinements,
+			number spacing
+		) {
 		/// Algorithm:
 		/// 1. Create line from bottomLeft to bottomRight
 		/// 2. Create line from bottomLeft to leftMDLayer and leftMDLayer to topLeft
@@ -567,6 +569,6 @@ namespace ug {
 		/// Save final grid after optimization
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_final.ugx");
-
+		}
 	}
 }

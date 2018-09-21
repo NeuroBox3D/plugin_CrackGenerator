@@ -11,11 +11,15 @@
 #include <string>
 
 using namespace std;
+using namespace ug::crack_generator;
 
 extern "C" UG_API void
 InitUGPlugin_CrackGenerator(ug::bridge::Registry* reg, string parentGroup)
 {
-  string grp(parentGroup); grp.append("CrackGenerator/");
-  reg->add_function("BuildCompleteCrack", &ug::BuildCompleteCrack, "", "crackInnerLength#innerThickness#crackOuterLength#angle (degree)", grp);
-  reg->add_function("BuildSimpleCrack", &ug::BuildSimpleCrack, "", "height#width#depth#thickness#refinement#spacing", grp);
+  string grp(parentGroup);
+  grp.append("CrackGenerator/");
+  reg->add_function("BuildCompleteCrack", &BuildCompleteCrack, "",
+		  "crackInnerLength#innerThickness#crackOuterLength#angle (degree)", grp);
+  reg->add_function("BuildSimpleCrack", &BuildSimpleCrack, "",
+		  "height#width#depth#thickness#refinement#spacing", grp);
 }
