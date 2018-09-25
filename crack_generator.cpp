@@ -471,9 +471,10 @@ namespace ug {
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
 		edges.assign(sel.edges_begin(), sel.edges_end());
-		VecScale(normal, normal, 1.0/preRefinements);
-		number totalLength = 0;
+		VecScale(normal, normal, 1.0/(2*(preRefinements+1)));
+		number totalLength = normal.z();
 		while (totalLength < depth) {
+			std::cout << "Extrude! length: " << totalLength << std::endl;
 			Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
 			totalLength += normal.z();
 		}
