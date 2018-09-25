@@ -340,6 +340,9 @@ namespace ug {
 		sh.set_default_subset_index(si_offset);
 		Edge* e7 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, rightMDLayerVertex));
 
+		sel.clear();
+		sel.select(e1);
+		sel.select(e7);
 		for (size_t i = 0; i < refinements; i++) {
 			Refine(g, sel);
 		}
@@ -357,7 +360,6 @@ namespace ug {
 		////////////////////////////////////////////////////////////////////////////////
 		/// BUILDSIMPLECRACK
 		////////////////////////////////////////////////////////////////////////////////
-		/// TODO: Pre-refine the inner MD square
 		void BuildSimpleCrack
 		(
 			number height,
@@ -452,16 +454,27 @@ namespace ug {
 		}
 		EraseEmptySubsets(sh);
 		AssignSubsetColors(sh);
+		sel.clear();
+		/// Retriangulate all
+		for (size_t i = 0; i < sh.num_subsets(); i++) {
+			SelectSubsetElements<ug::Face>(sel, sh, i, true);
+		}
+		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_11.ugx");
 
-		/// Extrude
+		/// Extrude (TODO: extrude MD subsets in a couple of steps and regular subsets can be extruded in one step)
 		ug::vector3 normal = ug::vector3(0, 0, depth);
 		std::vector<Edge*> edges;
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
 		edges.assign(sel.edges_begin(), sel.edges_end());
-		Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
+		VecScale(normal, normal, 1.0/refinements);
+		number totalLength = 0;
+		while (totalLength < depth) {
+			Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
+			totalLength += normal.z();
+		}
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_12.ugx");
 
@@ -493,12 +506,19 @@ namespace ug {
 			AssignSelectionToSubset(sel2, sh, i);
 			sel2.clear();
 		}
-
-		/// Tetrahedralize whole grid
-		Tetrahedralize(g, 10, true, true, aPosition, 1);
 		EraseEmptySubsets(sh);
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_14.ugx");
+
+		/// Tetrahedralize whole grid (Note: If we don't pre-refine Tetgen brakes down and disrespects the boundaries somehow)
+		if (refinements >= 3) {
+			Tetrahedralize(g, 5, false, true, aPosition, 1);
+		} else {
+			Tetrahedralize(g, 5, true, true, aPosition, 1);
+		}
+		EraseEmptySubsets(sh);
+		AssignSubsetColors(sh);
+		SaveGridToFile(g, sh, "crack_generator_simple_step_15.ugx");
 
 		/// Reassign the elements in the layers to subsets (uses ordering from above)
 		for (size_t i = 0; i < boxes.size(); i++) {
@@ -565,6 +585,25 @@ namespace ug {
 		EraseEmptySubsets(sh);
 		sh.subset_info(5).name = "Top";
 		sh.subset_info(6).name = "Bottom";
+		SaveGridToFile(g, sh, "crack_generator_simple_step_16.ugx");
+
+		/// Refine BD subsets
+		std::vector<std::string> bdDomains;
+		bdDomains.push_back("BD1");
+		bdDomains.push_back("BD2");
+		sel.clear();
+		for (std::vector<std::string>::const_iterator it = bdDomains.begin(); it != bdDomains.end(); ++it) {
+			SelectSubsetElements<ug::Face>(sel, sh, sh.get_subset_index(it->c_str()), true);
+			SelectSubsetElements<ug::Volume>(sel, sh, sh.get_subset_index(it->c_str()), true);
+			SelectSubsetElements<ug::Edge>(sel, sh, sh.get_subset_index(it->c_str()), true);
+			SelectSubsetElements<ug::Vertex>(sel, sh, sh.get_subset_index(it->c_str()), true);
+			CloseSelection(sel);
+			for (size_t i = 0; i < refinements; i++) {
+				Refine(g, sel);
+			}
+			sel.clear();
+		}
+		sel.clear();
 
 		/// Save final grid after optimization
 		AssignSubsetColors(sh);
