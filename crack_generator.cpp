@@ -464,7 +464,7 @@ namespace ug {
 		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_11.ugx");
 
-		/// Extrude (TODO: extrude MD subsets in a couple of steps (#preRefinements) and regular subsets can be extruded in one step!)
+		/// Extrude (TODO: extrude only MD subset in couple of steps see below, not whole geometry)
 		ug::vector3 normal = ug::vector3(0, 0, depth);
 		std::vector<Edge*> edges;
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
@@ -514,11 +514,8 @@ namespace ug {
 		SaveGridToFile(g, sh, "crack_generator_simple_step_14.ugx");
 
 		/// Tetrahedralize whole grid (Note: If we don't pre-refine Tetgen brakes down and disrespects the boundaries somehow)
-		if (preRefinements >= 3) {
-			Tetrahedralize(g, 5, false, true, aPosition, 1);
-		} else {
-			Tetrahedralize(g, 5, true, true, aPosition, 1);
-		}
+		Tetrahedralize(g, 5, false, true, aPosition, 1);
+
 		EraseEmptySubsets(sh);
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_15.ugx");
