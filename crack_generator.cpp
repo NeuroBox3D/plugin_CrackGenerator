@@ -340,6 +340,7 @@ namespace ug {
 		sh.set_default_subset_index(si_offset);
 		Edge* e7 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, rightMDLayerVertex));
 
+		/// This is pre-refinement of the Bridging Domains...
 		sel.clear();
 		sel.select(e1);
 		sel.select(e7);
@@ -366,8 +367,9 @@ namespace ug {
 			number width,
 			number depth,
 			number thickness,
-			size_t refinements,
-			number spacing
+			number spacing,
+			size_t preRefinements,
+			size_t postRefinements
 		) {
 		/// Algorithm:
 		/// 1. Create line from bottomLeft to bottomRight
@@ -399,7 +401,7 @@ namespace ug {
 		boxes.push_back(std::make_pair(bottomLeft, rightMDLayer));
 		size_t si_offset = 0;
 		std::vector<ug::Vertex*> verts;
-		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, refinements, sel, depth, si_offset, verts);
+		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, preRefinements, sel, depth, si_offset, verts);
 		si_offset = 3;
 
 		/// Second rectangle
@@ -411,7 +413,7 @@ namespace ug {
 		topRight = ug::vector3(width, -spacing-height, 0);
 		boxes.push_back(std::make_pair(topLeft, rightMDLayer));
 		boxes.push_back(std::make_pair(leftMDLayer, bottomRight));
-		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, refinements, sel, depth, si_offset, verts);
+		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, preRefinements, sel, depth, si_offset, verts);
 
 		/// Connect the two rectangles
 		sh.set_default_subset_index(2*si_offset);
@@ -462,14 +464,14 @@ namespace ug {
 		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_11.ugx");
 
-		/// Extrude (TODO: extrude MD subsets in a couple of steps and regular subsets can be extruded in one step)
+		/// Extrude (TODO: extrude MD subsets in a couple of steps (#preRefinements) and regular subsets can be extruded in one step!)
 		ug::vector3 normal = ug::vector3(0, 0, depth);
 		std::vector<Edge*> edges;
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
 		edges.assign(sel.edges_begin(), sel.edges_end());
-		VecScale(normal, normal, 1.0/refinements);
+		VecScale(normal, normal, 1.0/preRefinements);
 		number totalLength = 0;
 		while (totalLength < depth) {
 			Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
@@ -511,7 +513,7 @@ namespace ug {
 		SaveGridToFile(g, sh, "crack_generator_simple_step_14.ugx");
 
 		/// Tetrahedralize whole grid (Note: If we don't pre-refine Tetgen brakes down and disrespects the boundaries somehow)
-		if (refinements >= 3) {
+		if (preRefinements >= 3) {
 			Tetrahedralize(g, 5, false, true, aPosition, 1);
 		} else {
 			Tetrahedralize(g, 5, true, true, aPosition, 1);
@@ -587,7 +589,7 @@ namespace ug {
 		sh.subset_info(6).name = "Bottom";
 		SaveGridToFile(g, sh, "crack_generator_simple_step_16.ugx");
 
-		/// Refine BD subsets
+		/// Refine BD subsets (This is post-refinement)
 		std::vector<std::string> bdDomains;
 		bdDomains.push_back("BD1");
 		bdDomains.push_back("BD2");
@@ -598,7 +600,7 @@ namespace ug {
 			SelectSubsetElements<ug::Edge>(sel, sh, sh.get_subset_index(it->c_str()), true);
 			SelectSubsetElements<ug::Vertex>(sel, sh, sh.get_subset_index(it->c_str()), true);
 			CloseSelection(sel);
-			for (size_t i = 0; i < refinements; i++) {
+			for (size_t i = 0; i < postRefinements; i++) {
 				Refine(g, sel);
 			}
 			sel.clear();

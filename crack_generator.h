@@ -29,8 +29,9 @@ namespace ug {
 		 * \param[in] width
 		 * \param[in] depth
 		 * \param[in] thickness
-		 * \param[in] refinement
 		 * \param[in] spacing
+		 * \param[in] preRefinement
+		 * \param[in] postRefinement
 		 */
 		void BuildSimpleCrack
 		(
@@ -38,8 +39,9 @@ namespace ug {
 			number width,
 			number depth,
 			number thickness,
-			size_t refinement,
-			number spacing
+			number spacing,
+			size_t preRefinement,
+			size_t postRefinement
 		);
 	}
 }

@@ -21,5 +21,5 @@ InitUGPlugin_CrackGenerator(ug::bridge::Registry* reg, string parentGroup)
   reg->add_function("BuildCompleteCrack", &BuildCompleteCrack, "",
 		  "crackInnerLength#innerThickness#crackOuterLength#angle (degree)", grp);
   reg->add_function("BuildSimpleCrack", &BuildSimpleCrack, "",
-		  "height#width#depth#thickness#refinement#spacing", grp);
+		  "height#width#depth#thickness#spacing#prerefinements#postrefinements", grp);
 }
