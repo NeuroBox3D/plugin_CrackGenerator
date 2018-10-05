@@ -341,12 +341,15 @@ namespace ug {
 		Edge* e7 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, rightMDLayerVertex));
 
 		/// This is pre-refinement of the Bridging Domains...
+		/// TODO: refine as long as lattice constant not reached! -> lattice constant given and length of subset => #refs = length of subset / lattice constant = number of refinements
+		/// TODO Then go from bottom left corner up to top left corner -> introduce vertices on both sides in regular spacing subset_length / #refs -> create edge -> refine edge until lattice constant met.
 		sel.clear();
 		sel.select(e1);
 		sel.select(e7);
 		for (size_t i = 0; i < refinements; i++) {
 			Refine(g, sel);
 		}
+		sel.clear();
 		sh.set_default_subset_index(si_offset);
 
 		AssignSubsetColors(sh);
@@ -371,6 +374,8 @@ namespace ug {
 			size_t preRefinements,
 			size_t postRefinements
 		) {
+		/// TODO: refine not for number of refinemnts, but input lattice constant r_0, and refine until met
+		///       --> refine all subsets to have uniform mesh:
 		/// Algorithm:
 		/// 1. Create line from bottomLeft to bottomRight
 		/// 2. Create line from bottomLeft to leftMDLayer and leftMDLayer to topLeft
@@ -464,14 +469,14 @@ namespace ug {
 		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_11.ugx");
 
-		/// Extrude (TODO: extrude only MD subset in couple of steps see below, not whole geometry)
+		/// Extrude all in steps to ensure uniformity
 		ug::vector3 normal = ug::vector3(0, 0, depth);
 		std::vector<Edge*> edges;
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
 		edges.assign(sel.edges_begin(), sel.edges_end());
-		VecScale(normal, normal, 1.0/(2*(preRefinements+1)));
+		VecScale(normal, normal, 1.0/((number)(2*(preRefinements+1))));
 		number totalLength = normal.z();
 		while (totalLength < depth) {
 			std::cout << "Extrude! length: " << totalLength << std::endl;
@@ -587,7 +592,7 @@ namespace ug {
 		sh.subset_info(6).name = "Bottom";
 		SaveGridToFile(g, sh, "crack_generator_simple_step_16.ugx");
 
-		/// Refine BD subsets (This is post-refinement)
+		/// Refine BD subsets (This is post-refinement) TODO probably not necessary!
 		std::vector<std::string> bdDomains;
 		bdDomains.push_back("BD1");
 		bdDomains.push_back("BD2");
