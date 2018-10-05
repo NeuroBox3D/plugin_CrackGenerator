@@ -285,7 +285,8 @@ namespace ug {
 		SubsetHandler& sh,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos,
 		AInt& aInt,
-		size_t refinements,
+		number h_r_0,
+		number h_r_0_correction,
 		Selector& sel,
 		number depth,
 		size_t si_offset,
@@ -337,20 +338,119 @@ namespace ug {
 		Edge* e5 = *g.create<RegularEdge>(EdgeDescriptor(rightMDLayerVertex, topRightVertex));
 		Edge* e6 = *g.create<RegularEdge>(EdgeDescriptor(topLeftVertex, topRightVertex));
 
+		number leftMDLayertoRightMDLayer = VecDistance(leftMDLayer, rightMDLayer);
+		number pos = 0;
+		std::vector<ug::Vertex*> vertices;
+		while (pos < leftMDLayertoRightMDLayer-h_r_0) {
+			pos+=h_r_0;
+			Vertex* v3 = *g.create<RegularVertex>();
+			ug::vector3 temp3 = topLeft;
+			ug::vector3 dir;
+			VecSubtract(dir, rightMDLayer, leftMDLayer);
+			VecScaleAdd(temp3, 1, temp3, pos, dir);
+			aaPos[v3] = temp3;
+			vertices.push_back(v3);
+		}
+		for (size_t i = 0; i < vertices.size()-2; i++) {
+			*g.create<RegularEdge>(EdgeDescriptor(vertices[i], vertices[i+1]));
+		}
+		vertices.clear();
+
+		number leftMDLayerToTopLeft = VecDistance(leftMDLayer, topLeft);
+		pos = 0;
+		sel.clear();
+		std::vector<ug::Vertex*> vertices2;
+		vertices.push_back(leftMDLayerVertex);
+		vertices2.push_back(rightMDLayerVertex);
+		std::vector<ug::Vertex*> vertices3;
+		while (pos < leftMDLayerToTopLeft-h_r_0_correction) {
+			pos+=h_r_0;
+			Vertex* v1 = *g.create<RegularVertex>();
+			Vertex* v2 = *g.create<RegularVertex>();
+			ug::vector3 temp1 = leftMDLayer;
+			ug::vector3 temp2 = rightMDLayer;
+			ug::vector3 dir;
+			VecSubtract(dir, topLeft, leftMDLayer);
+			VecScaleAdd(temp1, 1, temp1, pos, dir);
+			VecScaleAdd(temp2, 1, temp2, pos, dir);
+			aaPos[v1] = temp1;
+			aaPos[v2] = temp2;
+			number pos2=0;
+			vertices3.push_back(v1);
+			while (pos2 < leftMDLayertoRightMDLayer-h_r_0) {
+				pos2+=h_r_0;
+				ug::vector3 temp3;
+				ug::vector3 dir;
+				VecSubtract(dir, rightMDLayer, leftMDLayer);
+				Vertex* v3 = *g.create<RegularVertex>();
+				VecScaleAdd(temp3, 1, temp1, pos2, dir);
+				aaPos[v3] = temp3;
+				vertices3.push_back(v3);
+			}
+			vertices3.push_back(v2);
+
+			for (size_t i = 0; i < vertices3.size()-2; i++) {
+				*g.create<RegularEdge>(EdgeDescriptor(vertices3[i], vertices3[i+1]));
+			}
+
+			vertices3.clear();
+			vertices.push_back(v1);
+			vertices2.push_back(v2);
+		}
+		vertices.push_back(topLeftVertex);
+		vertices2.push_back(topRightVertex);
+
+
+		for (size_t i = 0; i < vertices.size()-2; i++) {
+			*g.create<RegularEdge>(EdgeDescriptor(vertices[i], vertices[i+1]));
+			*g.create<RegularEdge>(EdgeDescriptor(vertices2[i], vertices2[i+1]));
+		}
+		vertices.clear();
+		vertices2.clear();
+
 		sh.set_default_subset_index(si_offset);
 		Edge* e7 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, rightMDLayerVertex));
 
-		/// This is pre-refinement of the Bridging Domains...
-		/// TODO: refine as long as lattice constant not reached! -> lattice constant given and length of subset => #refs = length of subset / lattice constant = number of refinements
-		/// TODO Then go from bottom left corner up to top left corner -> introduce vertices on both sides in regular spacing subset_length / #refs -> create edge -> refine edge until lattice constant met.
-		sel.clear();
-		sel.select(e1);
-		sel.select(e7);
-		for (size_t i = 0; i < refinements; i++) {
-			Refine(g, sel);
+		pos = 0;
+		vertices.push_back(leftMDLayerVertex);
+		vertices2.push_back(bottomLeftVertex);
+		while (pos < leftMDLayertoRightMDLayer-h_r_0) {
+			pos+=h_r_0;
+			Vertex* v1 = *g.create<RegularVertex>();
+			Vertex* v2 = *g.create<RegularVertex>();
+			ug::vector3 temp1 = leftMDLayer;
+			ug::vector3 temp2 = bottomLeft;
+			ug::vector3 dir;
+			VecSubtract(dir, rightMDLayer, leftMDLayer);
+			VecScaleAdd(temp1, 1, temp1, pos, dir);
+			VecScaleAdd(temp2, 1, temp2, pos, dir);
+			aaPos[v1] = temp1;
+			aaPos[v2] = temp2;
+			vertices.push_back(v1);
+			vertices2.push_back(v2);
 		}
+		vertices.push_back(rightMDLayerVertex);
+		vertices2.push_back(bottomRightVertex);
+
+		*g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, leftMDLayerVertex));
+		*g.create<RegularEdge>(EdgeDescriptor(bottomRightVertex, rightMDLayerVertex));
+
+		for (size_t i = 0; i < vertices.size()-2; i++) {
+			*g.create<RegularEdge>(EdgeDescriptor(vertices[i], vertices[i+1]));
+			*g.create<RegularEdge>(EdgeDescriptor(vertices2[i], vertices2[i+1]));
+		}
+		vertices.clear();
+		vertices2.clear();
 		sel.clear();
 		sh.set_default_subset_index(si_offset);
+
+		g.erase(e1);
+		g.erase(e2);
+		g.erase(e3);
+		g.erase(e4);
+		g.erase(e5);
+		g.erase(e6);
+		g.erase(e7);
 
 		AssignSubsetColors(sh);
 		step << "crack_generator_simple_step_" << si_offset+4 << ".ugx";
@@ -371,11 +471,9 @@ namespace ug {
 			number depth,
 			number thickness,
 			number spacing,
-			size_t preRefinements,
-			size_t postRefinements
+			number r_0,
+			number h
 		) {
-		/// TODO: refine not for number of refinemnts, but input lattice constant r_0, and refine until met
-		///       --> refine all subsets to have uniform mesh:
 		/// Algorithm:
 		/// 1. Create line from bottomLeft to bottomRight
 		/// 2. Create line from bottomLeft to leftMDLayer and leftMDLayer to topLeft
@@ -406,7 +504,7 @@ namespace ug {
 		boxes.push_back(std::make_pair(bottomLeft, rightMDLayer));
 		size_t si_offset = 0;
 		std::vector<ug::Vertex*> verts;
-		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, preRefinements, sel, depth, si_offset, verts);
+		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, h*r_0, 0, sel, depth, si_offset, verts);
 		si_offset = 3;
 
 		/// Second rectangle
@@ -418,7 +516,7 @@ namespace ug {
 		topRight = ug::vector3(width, -spacing-height, 0);
 		boxes.push_back(std::make_pair(topLeft, rightMDLayer));
 		boxes.push_back(std::make_pair(leftMDLayer, bottomRight));
-		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, preRefinements, sel, depth, si_offset, verts);
+		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, h*r_0, -h*r_0, sel, depth, si_offset, verts);
 
 		/// Connect the two rectangles
 		sh.set_default_subset_index(2*si_offset);
@@ -427,16 +525,18 @@ namespace ug {
 		boxes.push_back(std::make_pair(ug::vector3(0, -spacing, 0), ug::vector3(width, 0, 0)));
 
 		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_9.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_8.ugx");
+	    RemoveDoubles<3>(g, g.begin<Vertex>(), g.end<Vertex>(), aaPos, 0.0001);
 
 		/// Triangulate bottom
+	    /// TODO: Triangulate bottom manually by hand to achieve optimal uniform grid
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
 		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, sh.num_subsets());
 
 		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_10.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_9.ugx");
 
 		/// Reassign the elements in the layers to subsets -> start beyond the current subsets, thus this ordering is the same as below
 		size_t siFaces = sh.num_subsets()-1;
@@ -467,16 +567,16 @@ namespace ug {
 			SelectSubsetElements<ug::Face>(sel, sh, i, true);
 		}
 		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_11.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_10.ugx");
 
-		/// Extrude all in steps to ensure uniformity
+		/// TODO: Extrude all in steps to ensure uniformity use h_r_0!
 		ug::vector3 normal = ug::vector3(0, 0, depth);
 		std::vector<Edge*> edges;
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
 		edges.assign(sel.edges_begin(), sel.edges_end());
-		VecScale(normal, normal, 1.0/((number)(2*(preRefinements+1))));
+		VecScale(normal, normal, 1.0/((number)(2*(1+1))));
 		number totalLength = normal.z();
 		while (totalLength < depth) {
 			std::cout << "Extrude! length: " << totalLength << std::endl;
@@ -484,13 +584,13 @@ namespace ug {
 			totalLength += normal.z();
 		}
 		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_12.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_11.ugx");
 
 		/// Triangulate top
 		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, sh.num_subsets());
 		AssignSubsetColors(sh);
 		EraseEmptySubsets(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_13.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_12.ugx");
 
 		siFaces = sh.num_subsets()-1;
 		/// Reassign the elements in the layers to subsets (uses ordering from above)
@@ -516,14 +616,14 @@ namespace ug {
 		}
 		EraseEmptySubsets(sh);
 		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_14.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_13.ugx");
 
 		/// Tetrahedralize whole grid (Note: If we don't pre-refine Tetgen brakes down and disrespects the boundaries somehow)
 		Tetrahedralize(g, 5, false, true, aPosition, 1);
 
 		EraseEmptySubsets(sh);
 		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_simple_step_15.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_14.ugx");
 
 		/// Reassign the elements in the layers to subsets (uses ordering from above)
 		for (size_t i = 0; i < boxes.size(); i++) {
@@ -590,9 +690,11 @@ namespace ug {
 		EraseEmptySubsets(sh);
 		sh.subset_info(5).name = "Top";
 		sh.subset_info(6).name = "Bottom";
-		SaveGridToFile(g, sh, "crack_generator_simple_step_16.ugx");
+		SaveGridToFile(g, sh, "crack_generator_simple_step_15.ugx");
 
-		/// Refine BD subsets (This is post-refinement) TODO probably not necessary!
+		/*
+		/// Refine BD subsets (This is post-refinement)
+		/// Note: This seems not to be required...
 		std::vector<std::string> bdDomains;
 		bdDomains.push_back("BD1");
 		bdDomains.push_back("BD2");
@@ -603,12 +705,14 @@ namespace ug {
 			SelectSubsetElements<ug::Edge>(sel, sh, sh.get_subset_index(it->c_str()), true);
 			SelectSubsetElements<ug::Vertex>(sel, sh, sh.get_subset_index(it->c_str()), true);
 			CloseSelection(sel);
-			for (size_t i = 0; i < postRefinements; i++) {
+			for (size_t i = 0; i < 1; i++) {
 				Refine(g, sel);
 			}
 			sel.clear();
 		}
+		*/
 		sel.clear();
+
 
 		/// Save final grid after optimization
 		AssignSubsetColors(sh);

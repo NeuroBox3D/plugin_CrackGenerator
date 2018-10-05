@@ -40,8 +40,8 @@ namespace ug {
 			number depth,
 			number thickness,
 			number spacing,
-			size_t preRefinement,
-			size_t postRefinement
+			number h,
+			number r_0
 		);
 	}
 }
