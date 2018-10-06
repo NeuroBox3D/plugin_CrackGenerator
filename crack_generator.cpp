@@ -342,7 +342,7 @@ namespace ug {
 		number pos = 0;
 		std::vector<ug::Vertex*> vertices;
 		vertices.push_back(topLeftVertex);
-		while (pos <= leftMDLayertoRightMDLayer) {
+		while (pos < leftMDLayertoRightMDLayer) {
 			Vertex* v3 = *g.create<RegularVertex>();
 			ug::vector3 temp3 = topLeft;
 			ug::vector3 dir;
@@ -353,7 +353,7 @@ namespace ug {
 			pos+=h_r_0;
 		}
 		vertices.push_back(topRightVertex);
-		for (size_t i = 0; i < vertices.size()-2; i++) {
+		for (size_t i = 0; i < vertices.size()-1; i++) {
 			*g.create<RegularEdge>(EdgeDescriptor(vertices[i], vertices[i+1]));
 		}
 		vertices.clear();
@@ -391,7 +391,7 @@ namespace ug {
 			}
 			vertices3.push_back(v2);
 
-			for (size_t i = 0; i < vertices3.size()-2; i++) {
+			for (size_t i = 0; i < vertices3.size()-1; i++) {
 				*g.create<RegularEdge>(EdgeDescriptor(vertices3[i], vertices3[i+1]));
 			}
 
@@ -403,7 +403,7 @@ namespace ug {
 		vertices2.push_back(topRightVertex);
 
 
-		for (size_t i = 0; i < vertices.size()-2; i++) {
+		for (size_t i = 0; i < vertices.size()-1; i++) {
 			*g.create<RegularEdge>(EdgeDescriptor(vertices[i], vertices[i+1]));
 			*g.create<RegularEdge>(EdgeDescriptor(vertices2[i], vertices2[i+1]));
 		}
@@ -437,7 +437,7 @@ namespace ug {
 		*g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, leftMDLayerVertex));
 		*g.create<RegularEdge>(EdgeDescriptor(bottomRightVertex, rightMDLayerVertex));
 
-		for (size_t i = 0; i < vertices.size()-2; i++) {
+		for (size_t i = 0; i < vertices.size()-1; i++) {
 			*g.create<RegularEdge>(EdgeDescriptor(vertices[i], vertices[i+1]));
 			*g.create<RegularEdge>(EdgeDescriptor(vertices2[i], vertices2[i+1]));
 		}
