@@ -341,8 +341,8 @@ namespace ug {
 		number leftMDLayertoRightMDLayer = VecDistance(leftMDLayer, rightMDLayer);
 		number pos = 0;
 		std::vector<ug::Vertex*> vertices;
-		while (pos < leftMDLayertoRightMDLayer-h_r_0) {
-			pos+=h_r_0;
+		vertices.push_back(topLeftVertex);
+		while (pos <= leftMDLayertoRightMDLayer) {
 			Vertex* v3 = *g.create<RegularVertex>();
 			ug::vector3 temp3 = topLeft;
 			ug::vector3 dir;
@@ -350,7 +350,9 @@ namespace ug {
 			VecScaleAdd(temp3, 1, temp3, pos, dir);
 			aaPos[v3] = temp3;
 			vertices.push_back(v3);
+			pos+=h_r_0;
 		}
+		vertices.push_back(topRightVertex);
 		for (size_t i = 0; i < vertices.size()-2; i++) {
 			*g.create<RegularEdge>(EdgeDescriptor(vertices[i], vertices[i+1]));
 		}
@@ -360,10 +362,10 @@ namespace ug {
 		pos = 0;
 		sel.clear();
 		std::vector<ug::Vertex*> vertices2;
+		std::vector<ug::Vertex*> vertices3;
 		vertices.push_back(leftMDLayerVertex);
 		vertices2.push_back(rightMDLayerVertex);
-		std::vector<ug::Vertex*> vertices3;
-		while (pos < leftMDLayerToTopLeft-h_r_0_correction) {
+		while (pos <= leftMDLayerToTopLeft) {
 			pos+=h_r_0;
 			Vertex* v1 = *g.create<RegularVertex>();
 			Vertex* v2 = *g.create<RegularVertex>();
@@ -377,8 +379,7 @@ namespace ug {
 			aaPos[v2] = temp2;
 			number pos2=0;
 			vertices3.push_back(v1);
-			while (pos2 < leftMDLayertoRightMDLayer-h_r_0) {
-				pos2+=h_r_0;
+			while (pos2 <= leftMDLayertoRightMDLayer) {
 				ug::vector3 temp3;
 				ug::vector3 dir;
 				VecSubtract(dir, rightMDLayer, leftMDLayer);
@@ -386,6 +387,7 @@ namespace ug {
 				VecScaleAdd(temp3, 1, temp1, pos2, dir);
 				aaPos[v3] = temp3;
 				vertices3.push_back(v3);
+				pos2+=h_r_0;
 			}
 			vertices3.push_back(v2);
 
@@ -414,8 +416,7 @@ namespace ug {
 		pos = 0;
 		vertices.push_back(leftMDLayerVertex);
 		vertices2.push_back(bottomLeftVertex);
-		while (pos < leftMDLayertoRightMDLayer-h_r_0) {
-			pos+=h_r_0;
+		while (pos <= leftMDLayertoRightMDLayer) {
 			Vertex* v1 = *g.create<RegularVertex>();
 			Vertex* v2 = *g.create<RegularVertex>();
 			ug::vector3 temp1 = leftMDLayer;
@@ -428,6 +429,7 @@ namespace ug {
 			aaPos[v2] = temp2;
 			vertices.push_back(v1);
 			vertices2.push_back(v2);
+			pos+=h_r_0;
 		}
 		vertices.push_back(rightMDLayerVertex);
 		vertices2.push_back(bottomRightVertex);
