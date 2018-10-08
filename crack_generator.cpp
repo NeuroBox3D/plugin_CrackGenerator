@@ -484,11 +484,12 @@ namespace ug {
 		/// 2. Create line from bottomLeft to leftMDLayer and leftMDLayer to topLeft
 		/// 3. Create line from bottomRight to rightMDLayer and rightMDLayer to topRight
 		/// 4. Create line from rightMDLayer to leftMDLayer and topRight to topLeft
-		UG_COND_THROW(thickness==height, "Thickness can't be the same as height.");
-		UG_COND_THROW(height * width * depth * thickness * spacing * r_0 * h < 0, "Only positive values allowed.");
-		UG_COND_THROW(r_0*h != thickness, "For now the thickness must equal the product of lattice constant (r_0) and fineness (h).");
-		/// TODO: if h*r_0 is given, better choose thickness, depth, width, height such that they can be divided by h*r_0 without remainder -> otherwise borders of layers have not the same spacing...
+		UG_COND_THROW(thickness >= height, "Thickness of bridging domain layers can't be larger then height of whole geometry.");
+		UG_COND_THROW(r_0*h != thickness, "For now the thickness of the briding domain layer must equal the product of lattice constant (r_0) and fineness (h).");
 		/// TODO: if fineness (r0*h) of grid smaller then thickness of bridging domain layers -> also refine briding domains vertically!
+		if ( (fmod(width, h*r_0) != 0 || fmod(height, h*r_0) || fmod(depth, h*r_0))) {
+			UG_LOGN("Width, height, or depth not evenly divisable by h*r_0, expect on borders non uniform spacing.")
+		}
 
 		Grid g;
 	    SubsetHandler sh(g);
