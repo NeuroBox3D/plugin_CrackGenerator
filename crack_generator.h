@@ -25,13 +25,13 @@ namespace ug {
 
 		/*!
 		 * \brief builds a simple crack geometry
-		 * \param[in] height
-		 * \param[in] width
-		 * \param[in] depth
-		 * \param[in] thickness
-		 * \param[in] spacing
-		 * \param[in] preRefinement
-		 * \param[in] postRefinement
+		 * \param[in] height of cuboid
+		 * \param[in] width of cuboid
+		 * \param[in] depth of cuboid
+		 * \param[in] thickness of one briding domain
+		 * \param[in] spacing the size of the MD domain
+		 * \param[in] h finess of grid
+		 * \param[in] r_0 lattice constant
 		 */
 		void BuildSimpleCrack
 		(

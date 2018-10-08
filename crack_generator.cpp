@@ -286,7 +286,6 @@ namespace ug {
 		Grid::VertexAttachmentAccessor<APosition>& aaPos,
 		AInt& aInt,
 		number h_r_0,
-		number h_r_0_correction,
 		Selector& sel,
 		number depth,
 		size_t si_offset,
@@ -335,6 +334,9 @@ namespace ug {
 		SaveGridToFile(g, sh, step.str().c_str());
 		step.str(""); step.clear();
 
+		/// TODO: if fineness (r0*h) of grid smaller then thickness of bridging domain layers -> also refine briding domains vertically!
+		/// Note: That in this case the size can't be 100% matched at teh bottom and top part because the total width height and depth might not be evenly dividable by the number of steps we need to make given by r0*h!
+
 		Edge* e5 = *g.create<RegularEdge>(EdgeDescriptor(rightMDLayerVertex, topRightVertex));
 		Edge* e6 = *g.create<RegularEdge>(EdgeDescriptor(topLeftVertex, topRightVertex));
 
@@ -365,21 +367,21 @@ namespace ug {
 		std::vector<ug::Vertex*> vertices3;
 		vertices.push_back(leftMDLayerVertex);
 		vertices2.push_back(rightMDLayerVertex);
-		while (pos <= leftMDLayerToTopLeft) {
+		while (pos < leftMDLayerToTopLeft) {
 			pos+=h_r_0;
 			Vertex* v1 = *g.create<RegularVertex>();
 			Vertex* v2 = *g.create<RegularVertex>();
 			ug::vector3 temp1 = leftMDLayer;
 			ug::vector3 temp2 = rightMDLayer;
 			ug::vector3 dir;
-			VecSubtract(dir, topLeft, leftMDLayer);
+			VecSubtract(dir, topLeft, leftMDLayer); /// TODO: need to step forward with h*r_0 not a fraction of the distance!
 			VecScaleAdd(temp1, 1, temp1, pos, dir);
 			VecScaleAdd(temp2, 1, temp2, pos, dir);
 			aaPos[v1] = temp1;
 			aaPos[v2] = temp2;
 			number pos2=0;
 			vertices3.push_back(v1);
-			while (pos2 <= leftMDLayertoRightMDLayer) {
+			while (pos2 < leftMDLayertoRightMDLayer) {
 				ug::vector3 temp3;
 				ug::vector3 dir;
 				VecSubtract(dir, rightMDLayer, leftMDLayer);
@@ -416,14 +418,14 @@ namespace ug {
 		pos = 0;
 		vertices.push_back(leftMDLayerVertex);
 		vertices2.push_back(bottomLeftVertex);
-		while (pos <= leftMDLayertoRightMDLayer) {
+		while (pos < leftMDLayertoRightMDLayer) {
 			Vertex* v1 = *g.create<RegularVertex>();
 			Vertex* v2 = *g.create<RegularVertex>();
 			ug::vector3 temp1 = leftMDLayer;
 			ug::vector3 temp2 = bottomLeft;
 			ug::vector3 dir;
 			VecSubtract(dir, rightMDLayer, leftMDLayer);
-			VecScaleAdd(temp1, 1, temp1, pos, dir);
+			VecScaleAdd(temp1, 1, temp1, pos, dir); /// TODO: all these scalings have to be corrected to length if width, height depth is not in [0, 1]!
 			VecScaleAdd(temp2, 1, temp2, pos, dir);
 			aaPos[v1] = temp1;
 			aaPos[v2] = temp2;
@@ -475,6 +477,7 @@ namespace ug {
 			number spacing,
 			number r_0,
 			number h
+			/// TODO: need to scale r_0*h with width depth and height -> otherwise domain get's too large. => Make everything relative
 		) {
 		/// Algorithm:
 		/// 1. Create line from bottomLeft to bottomRight
@@ -482,6 +485,10 @@ namespace ug {
 		/// 3. Create line from bottomRight to rightMDLayer and rightMDLayer to topRight
 		/// 4. Create line from rightMDLayer to leftMDLayer and topRight to topLeft
 		UG_COND_THROW(thickness==height, "Thickness can't be the same as height.");
+		UG_COND_THROW(height * width * depth * thickness * spacing * r_0 * h < 0, "Only positive values allowed.");
+		UG_COND_THROW(r_0*h != thickness, "For now the thickness must equal the product of lattice constant (r_0) and fineness (h).");
+		UG_COND_THROW(!(width == height == depth == 1), "Only 1 allowed for depth, height, width. (Thickness must be below 1 as well)");
+		/// TODO: if h*r_0 is given, better choose thickness, depth, width, height such that they can be divided by h*r_0 without remainder -> otherwise borders of layers have not the same spacing...
 
 		Grid g;
 	    SubsetHandler sh(g);
@@ -506,7 +513,7 @@ namespace ug {
 		boxes.push_back(std::make_pair(bottomLeft, rightMDLayer));
 		size_t si_offset = 0;
 		std::vector<ug::Vertex*> verts;
-		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, h*r_0, 0, sel, depth, si_offset, verts);
+		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, h*r_0, sel, depth, si_offset, verts);
 		si_offset = 3;
 
 		/// Second rectangle
@@ -518,7 +525,7 @@ namespace ug {
 		topRight = ug::vector3(width, -spacing-height, 0);
 		boxes.push_back(std::make_pair(topLeft, rightMDLayer));
 		boxes.push_back(std::make_pair(leftMDLayer, bottomRight));
-		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, h*r_0, -h*r_0, sel, depth, si_offset, verts);
+		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, h*r_0, sel, depth, si_offset, verts);
 
 		/// Connect the two rectangles
 		sh.set_default_subset_index(2*si_offset);
