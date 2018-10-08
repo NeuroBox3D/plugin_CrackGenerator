@@ -334,9 +334,6 @@ namespace ug {
 		SaveGridToFile(g, sh, step.str().c_str());
 		step.str(""); step.clear();
 
-		/// TODO: if fineness (r0*h) of grid smaller then thickness of bridging domain layers -> also refine briding domains vertically!
-		/// Note: That in this case the size can't be 100% matched at teh bottom and top part because the total width height and depth might not be evenly dividable by the number of steps we need to make given by r0*h!
-
 		Edge* e5 = *g.create<RegularEdge>(EdgeDescriptor(rightMDLayerVertex, topRightVertex));
 		Edge* e6 = *g.create<RegularEdge>(EdgeDescriptor(topLeftVertex, topRightVertex));
 
@@ -349,6 +346,7 @@ namespace ug {
 			ug::vector3 temp3 = topLeft;
 			ug::vector3 dir;
 			VecSubtract(dir, rightMDLayer, leftMDLayer);
+			VecNormalize(dir, dir);
 			VecScaleAdd(temp3, 1, temp3, pos, dir);
 			aaPos[v3] = temp3;
 			vertices.push_back(v3);
@@ -374,7 +372,8 @@ namespace ug {
 			ug::vector3 temp1 = leftMDLayer;
 			ug::vector3 temp2 = rightMDLayer;
 			ug::vector3 dir;
-			VecSubtract(dir, topLeft, leftMDLayer); /// TODO: need to step forward with h*r_0 not a fraction of the distance!
+			VecSubtract(dir, topLeft, leftMDLayer);
+			VecNormalize(dir, dir);
 			VecScaleAdd(temp1, 1, temp1, pos, dir);
 			VecScaleAdd(temp2, 1, temp2, pos, dir);
 			aaPos[v1] = temp1;
@@ -385,6 +384,7 @@ namespace ug {
 				ug::vector3 temp3;
 				ug::vector3 dir;
 				VecSubtract(dir, rightMDLayer, leftMDLayer);
+				VecNormalize(dir, dir);
 				Vertex* v3 = *g.create<RegularVertex>();
 				VecScaleAdd(temp3, 1, temp1, pos2, dir);
 				aaPos[v3] = temp3;
@@ -425,7 +425,8 @@ namespace ug {
 			ug::vector3 temp2 = bottomLeft;
 			ug::vector3 dir;
 			VecSubtract(dir, rightMDLayer, leftMDLayer);
-			VecScaleAdd(temp1, 1, temp1, pos, dir); /// TODO: all these scalings have to be corrected to length if width, height depth is not in [0, 1]!
+			VecNormalize(dir, dir);
+			VecScaleAdd(temp1, 1, temp1, pos, dir);
 			VecScaleAdd(temp2, 1, temp2, pos, dir);
 			aaPos[v1] = temp1;
 			aaPos[v2] = temp2;
@@ -477,7 +478,6 @@ namespace ug {
 			number spacing,
 			number r_0,
 			number h
-			/// TODO: need to scale r_0*h with width depth and height -> otherwise domain get's too large. => Make everything relative
 		) {
 		/// Algorithm:
 		/// 1. Create line from bottomLeft to bottomRight
@@ -487,8 +487,8 @@ namespace ug {
 		UG_COND_THROW(thickness==height, "Thickness can't be the same as height.");
 		UG_COND_THROW(height * width * depth * thickness * spacing * r_0 * h < 0, "Only positive values allowed.");
 		UG_COND_THROW(r_0*h != thickness, "For now the thickness must equal the product of lattice constant (r_0) and fineness (h).");
-		UG_COND_THROW(!(width == height == depth == 1), "Only 1 allowed for depth, height, width. (Thickness must be below 1 as well)");
 		/// TODO: if h*r_0 is given, better choose thickness, depth, width, height such that they can be divided by h*r_0 without remainder -> otherwise borders of layers have not the same spacing...
+		/// TODO: if fineness (r0*h) of grid smaller then thickness of bridging domain layers -> also refine briding domains vertically!
 
 		Grid g;
 	    SubsetHandler sh(g);
@@ -578,14 +578,14 @@ namespace ug {
 		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_10.ugx");
 
-		/// TODO: Extrude all in steps to ensure uniformity use h_r_0!
+		/// Extrude all in steps to ensure uniformity we use h*r_0
 		ug::vector3 normal = ug::vector3(0, 0, depth);
 		std::vector<Edge*> edges;
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
 		edges.assign(sel.edges_begin(), sel.edges_end());
-		VecScale(normal, normal, 1.0/((number)(2*(1+1))));
+		VecScale(normal, normal, 0.5/h*r_0);
 		number totalLength = normal.z();
 		while (totalLength < depth) {
 			std::cout << "Extrude! length: " << totalLength << std::endl;
