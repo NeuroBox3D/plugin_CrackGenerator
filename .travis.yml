@@ -1,0 +1,18 @@
+sudo: false
+dist: trusty
+language: cpp
+compiler: clang
+
+before_script:
+ - gem install travis
+ - git clone https://www.github.com/UG4/ughub
+ - ughub/ughub init
+ - ughub/ughub install ugcore CrackGenerator
+ - mkdir build && cd build && cmake ../ -DTARGET=vrl -DLAPACK=OFF -DBLAS=OFF -DDIM="3" -DCOMPILE_INFO=OFF -DCrackGenerator=ON
+ - travis_wait 800 make
+
+script:
+ -
+ 
+after_success:
+ -
