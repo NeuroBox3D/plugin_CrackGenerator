@@ -3,6 +3,13 @@ dist: trusty
 language: cpp
 compiler: clang
 
+# builds matrix
+matrix:
+  include:
+    - os: linux
+    - os: osx
+      osx_image: xcode8
+
 before_script:
  - gem install travis
  - git clone https://www.github.com/UG4/ughub
