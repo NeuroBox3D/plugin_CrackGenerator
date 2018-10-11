@@ -4,8 +4,7 @@ The CrackGenerator ug4 plugin.
 # CI
 OSX/Linux [![OSX/Linux Build Status](https://travis-ci.org/NeuroBox3D/plugin_CrackGenerator.svg?branch=master)](https://travis-ci.org/NeuroBox3D/plugin_CrackGenerator)
 
-Windows [![Windows Build status](https://ci.appveyor.com/api/projects/status/2muj01c6jq7qge37?svg=true)](https://ci.appveyor.com/project/stephanmg/app-crackgenerator)
+Windows [![Build status](https://ci.appveyor.com/api/projects/status/5v2wkne04y280q5a?svg=true)](https://ci.appveyor.com/project/stephanmg/plugin-crackgenerator)
 
 # TODOs
 1. Refactor some more variable names to something more meaningful. Code could need some more shortening too.
-2. Clone script from app_CrackGenerator and add test to Travis and AppVeyor.
