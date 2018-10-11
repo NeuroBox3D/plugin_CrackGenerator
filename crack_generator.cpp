@@ -280,9 +280,7 @@ namespace ug {
 		aaPos[bottomLeftVertex] = bottomLeft;
 		Vertex* bottomRightVertex = *g.create<RegularVertex>();
 		aaPos[bottomRightVertex] = bottomRight;
-
 		Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, bottomRightVertex));
-
 		AssignSubsetColors(sh);
 		step << "crack_generator_simple_step_" << si_offset+1 << ".ugx";
 		SaveGridToFile(g, sh, step.str().c_str());
@@ -290,13 +288,10 @@ namespace ug {
 
 		Vertex* leftMDLayerVertex = *g.create<RegularVertex>();
 		aaPos[leftMDLayerVertex] = leftMDLayer;
-
 		Vertex* rightMDLayerVertex = *g.create<RegularVertex>();
 		aaPos[rightMDLayerVertex] = rightMDLayer;
-
 		Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, leftMDLayerVertex));
 		Edge* e3 = *g.create<RegularEdge>(EdgeDescriptor(bottomRightVertex, rightMDLayerVertex));
-
 		AssignSubsetColors(sh);
 		step << "crack_generator_simple_step_" << si_offset+2 << ".ugx";
 		SaveGridToFile(g, sh, step.str().c_str());
@@ -305,12 +300,9 @@ namespace ug {
 		sh.set_default_subset_index(1+si_offset);
 		Vertex* topLeftVertex = *g.create<RegularVertex>();
 		aaPos[topLeftVertex] = topLeft;
-
 		Vertex* topRightVertex = *g.create<RegularVertex>();
 		aaPos[topRightVertex] = topRight;
-
 		Edge* e4 = *g.create<RegularEdge>(EdgeDescriptor(leftMDLayerVertex, topLeftVertex));
-
 		AssignSubsetColors(sh);
 		step << "crack_generator_simple_step_" << si_offset+3 << ".ugx";
 		SaveGridToFile(g, sh, step.str().c_str());
@@ -318,7 +310,6 @@ namespace ug {
 
 		Edge* e5 = *g.create<RegularEdge>(EdgeDescriptor(rightMDLayerVertex, topRightVertex));
 		Edge* e6 = *g.create<RegularEdge>(EdgeDescriptor(topLeftVertex, topRightVertex));
-
 		number leftMDLayertoRightMDLayer = VecDistance(leftMDLayer, rightMDLayer);
 		number pos = 0;
 		std::vector<Vertex*> vertices;
@@ -340,8 +331,6 @@ namespace ug {
 			*g.create<RegularEdge>(EdgeDescriptor(vertices[i], vertices[i+1]));
 		}
 		vertices.clear();
-		/// REFINE HORIZONTAL
-
 
 		/// REFINE VERTICAL
 		number leftMDLayerToTopLeft = VecDistance(leftMDLayer, topLeft);
@@ -420,7 +409,6 @@ namespace ug {
 			vertices2.push_back(v2);
 			pos+=h_r_0;
 		}
-		/// REFINE VERTICAL
 
 		/// REFINE BD DOMAIN VERTICAL AND HORIZONTAL
 		pos = 0;
@@ -473,9 +461,6 @@ namespace ug {
 			*g.create<RegularEdge>(EdgeDescriptor(vertices4[i], vertices4[i+1]));
 			*g.create<RegularEdge>(EdgeDescriptor(vertices5[i], vertices5[i+1]));
 		}
-		/// REFINE BD DOMAIN VERTICAL AND HORIZONTAL
-
-
 
 		vertices.push_back(rightMDLayerVertex);
 		vertices2.push_back(bottomRightVertex);
@@ -488,12 +473,9 @@ namespace ug {
 		sel.clear();
 		sh.set_default_subset_index(si_offset);
 
-		g.erase(e1);
-		g.erase(e2);
-		g.erase(e3);
-		g.erase(e4);
-		g.erase(e5);
-		g.erase(e6);
+		/// erase the old coarse edges
+		g.erase(e1); g.erase(e2); g.erase(e3);
+		g.erase(e4); g.erase(e5); g.erase(e6);
 		g.erase(e7);
 
 		AssignSubsetColors(sh);
@@ -519,6 +501,7 @@ namespace ug {
 		number h
 	)
 	{
+		/// check user input
 		UG_COND_THROW(thickness >= height || thickness >= width || thickness >= depth,
 				"Thickness of bridging domain layers can't be larger then height of whole geometry.");
 		if (fabs(fmod(width, h*r_0)) > SMALL || fabs(fmod(height, h*r_0)) > SMALL || fabs(fmod(depth, h*r_0)) > SMALL) {
