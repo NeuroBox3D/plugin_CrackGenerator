@@ -341,6 +341,7 @@ namespace ug {
 		number pos = 0;
 		std::vector<ug::Vertex*> vertices;
 		vertices.push_back(topLeftVertex);
+		/// REFINE HORIZONTAL
 		while (pos < leftMDLayertoRightMDLayer) {
 			Vertex* v3 = *g.create<RegularVertex>();
 			ug::vector3 temp3 = topLeft;
@@ -357,7 +358,10 @@ namespace ug {
 			*g.create<RegularEdge>(EdgeDescriptor(vertices[i], vertices[i+1]));
 		}
 		vertices.clear();
+		/// REFINE HORIZONTAL
 
+
+		/// REFINE VERTICAL
 		number leftMDLayerToTopLeft = VecDistance(leftMDLayer, topLeft);
 		pos = 0;
 		sel.clear();
@@ -434,15 +438,68 @@ namespace ug {
 			vertices2.push_back(v2);
 			pos+=h_r_0;
 		}
+		/// REFINE VERTICAL
+
+		/// REFINE BD DOMAIN VERTICAL AND HORIZONTAL
+		pos = 0;
+		number distance = VecDistance(leftMDLayer, bottomLeft);
+		std::vector<ug::Vertex*> vertices4;
+		std::vector<ug::Vertex*> vertices5;
+		std::vector<ug::Vertex*> vertices6;
+		vertices4.push_back(bottomLeftVertex);
+		vertices5.push_back(bottomRightVertex);
+		while (pos < distance) {
+			Vertex* v3 = *g.create<RegularVertex>();
+			Vertex* v4 = *g.create<RegularVertex>();
+			ug::vector3 temp3 = bottomLeft;
+			ug::vector3 temp4 = bottomRight;
+			ug::vector3 dir;
+			VecSubtract(dir, leftMDLayer, bottomLeft);
+			VecNormalize(dir, dir);
+			VecScaleAdd(temp3, 1, temp3, pos, dir);
+			VecScaleAdd(temp4, 1, temp4, pos, dir);
+			aaPos[v3] = temp3;
+			aaPos[v4] = temp4;
+			vertices4.push_back(v3);
+			vertices5.push_back(v4);
+			pos+=h_r_0;
+			number dist = VecDistance(leftMDLayer, rightMDLayer);
+			number pos2 = 0;
+			vertices6.push_back(v3);
+			while (pos2 < dist) {
+				Vertex* v5 = *g.create<RegularVertex>();
+				ug::vector3 temp5 = temp3;
+				ug::vector3 dir;
+				VecSubtract(dir, rightMDLayer, leftMDLayer);
+				VecNormalize(dir, dir);
+				VecScaleAdd(temp5, 1, temp5, pos2, dir);
+				aaPos[v5] = temp5;
+				pos2+=h_r_0;
+				vertices6.push_back(v5);
+			}
+			vertices6.push_back(v4);
+
+			for (size_t i = 0; i < vertices6.size()-1; i++) {
+				*g.create<RegularEdge>(EdgeDescriptor(vertices6[i], vertices6[i+1]));
+			}
+			vertices6.clear();
+		}
+		vertices4.push_back(leftMDLayerVertex);
+		vertices5.push_back(rightMDLayerVertex);
+
+		for (size_t i = 0; i < vertices4.size()-1; i++) {
+			*g.create<RegularEdge>(EdgeDescriptor(vertices4[i], vertices4[i+1]));
+			*g.create<RegularEdge>(EdgeDescriptor(vertices5[i], vertices5[i+1]));
+		}
+		/// REFINE BD DOMAIN VERTICAL AND HORIZONTAL
+
+
+
 		vertices.push_back(rightMDLayerVertex);
 		vertices2.push_back(bottomRightVertex);
 
-		*g.create<RegularEdge>(EdgeDescriptor(bottomLeftVertex, leftMDLayerVertex));
-		*g.create<RegularEdge>(EdgeDescriptor(bottomRightVertex, rightMDLayerVertex));
-
 		for (size_t i = 0; i < vertices.size()-1; i++) {
 			*g.create<RegularEdge>(EdgeDescriptor(vertices[i], vertices[i+1]));
-			*g.create<RegularEdge>(EdgeDescriptor(vertices2[i], vertices2[i+1]));
 		}
 		vertices.clear();
 		vertices2.clear();
@@ -484,10 +541,8 @@ namespace ug {
 		/// 2. Create line from bottomLeft to leftMDLayer and leftMDLayer to topLeft
 		/// 3. Create line from bottomRight to rightMDLayer and rightMDLayer to topRight
 		/// 4. Create line from rightMDLayer to leftMDLayer and topRight to topLeft
-		UG_COND_THROW(thickness >= height, "Thickness of bridging domain layers can't be larger then height of whole geometry.");
-		UG_COND_THROW(r_0*h != thickness, "For now the thickness of the briding domain layer must equal the product of lattice constant (r_0) and fineness (h).");
-		/// TODO: if fineness (r0*h) of grid smaller then thickness of bridging domain layers -> also refine briding domains vertically!
-		if ( (fmod(width, h*r_0) != 0 || fmod(height, h*r_0) || fmod(depth, h*r_0))) {
+		UG_COND_THROW(thickness >= height || thickness >= width || thickness >= depth, "Thickness of bridging domain layers can't be larger then height of whole geometry.");
+		if (fabs(fmod(width, h*r_0)) > SMALL || fabs(fmod(height, h*r_0)) > SMALL || fabs(fmod(depth, h*r_0)) > SMALL) {
 			UG_LOGN("Width, height, or depth not evenly divisable by h*r_0, expect on borders non uniform spacing.")
 		}
 
@@ -539,7 +594,7 @@ namespace ug {
 	    RemoveDoubles<3>(g, g.begin<Vertex>(), g.end<Vertex>(), aaPos, 0.0001);
 
 		/// Triangulate bottom
-	    /// TODO: Triangulate bottom manually by hand to achieve optimal uniform grid
+	    /// TODO: Triangulate bottom manually by hand to achieve optimal uniform grid orientation?
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
 		}
@@ -572,6 +627,7 @@ namespace ug {
 		EraseEmptySubsets(sh);
 		AssignSubsetColors(sh);
 		sel.clear();
+		UG_LOGN("Triangulate bottom surface...")
 		/// Retriangulate all
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<ug::Face>(sel, sh, i, true);
@@ -588,8 +644,8 @@ namespace ug {
 		edges.assign(sel.edges_begin(), sel.edges_end());
 		VecScale(normal, normal, 0.5/h*r_0);
 		number totalLength = normal.z();
+		UG_LOGN("Extruding...")
 		while (totalLength < depth) {
-			std::cout << "Extrude! length: " << totalLength << std::endl;
 			Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
 			totalLength += normal.z();
 		}
@@ -597,6 +653,7 @@ namespace ug {
 		SaveGridToFile(g, sh, "crack_generator_simple_step_11.ugx");
 
 		/// Triangulate top
+		UG_LOGN("Triangulate top surface...")
 		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, sh.num_subsets());
 		AssignSubsetColors(sh);
 		EraseEmptySubsets(sh);
@@ -628,6 +685,7 @@ namespace ug {
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_13.ugx");
 
+		UG_LOGN("Tetrahedralize...")
 		/// Tetrahedralize whole grid (Note: If we don't pre-refine Tetgen brakes down and disrespects the boundaries somehow)
 		Tetrahedralize(g, 5, false, true, aPosition, 1);
 
@@ -702,29 +760,10 @@ namespace ug {
 		sh.subset_info(6).name = "Bottom";
 		SaveGridToFile(g, sh, "crack_generator_simple_step_15.ugx");
 
-		/*
-		/// Refine BD subsets (This is post-refinement)
-		/// Note: This seems not to be required...
-		std::vector<std::string> bdDomains;
-		bdDomains.push_back("BD1");
-		bdDomains.push_back("BD2");
 		sel.clear();
-		for (std::vector<std::string>::const_iterator it = bdDomains.begin(); it != bdDomains.end(); ++it) {
-			SelectSubsetElements<ug::Face>(sel, sh, sh.get_subset_index(it->c_str()), true);
-			SelectSubsetElements<ug::Volume>(sel, sh, sh.get_subset_index(it->c_str()), true);
-			SelectSubsetElements<ug::Edge>(sel, sh, sh.get_subset_index(it->c_str()), true);
-			SelectSubsetElements<ug::Vertex>(sel, sh, sh.get_subset_index(it->c_str()), true);
-			CloseSelection(sel);
-			for (size_t i = 0; i < 1; i++) {
-				Refine(g, sel);
-			}
-			sel.clear();
-		}
-		*/
-		sel.clear();
-
 
 		/// Save final grid after optimization
+		UG_LOGN("Writing final grid...")
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_final.ugx");
 
