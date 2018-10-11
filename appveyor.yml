@@ -3,6 +3,9 @@ platform:
 
 os: Visual Studio 2015
 
+environment:
+  MSBUILD_FLAGS: /verbosity:minimal /maxcpucount
+
 install:
   - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
 
