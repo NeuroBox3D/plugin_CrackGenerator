@@ -4,7 +4,7 @@
 
 set(pluginName	CrackGenerator)
 set(SOURCES		plugin_main.cpp
-				Crack_generator.cpp)
+				crack_generator.cpp)
 
 
 ################################################################################
