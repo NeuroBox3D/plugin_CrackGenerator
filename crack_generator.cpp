@@ -16,271 +16,252 @@
 namespace ug {
 	namespace crack_generator {
 		////////////////////////////////////////////////////////////////////////////////
-		/// BUILDCOMPLETECRACK
+		/// BuildCompleteCrack
 		////////////////////////////////////////////////////////////////////////////////
-		/// TODO: Pre-refine the inner MD square
-		/// TODO: Improve triangulation and tetrahedralization
 		void BuildCompleteCrack
 		(
 			number crackInnerLength=0.2,
 			number innerThickness=0.1,
 			number crackOuterLength=2.0,
 			number angle = 10
-		) {
-		Grid g;
-	    SubsetHandler sh(g);
-	    sh.set_default_subset_index(0);
-	    g.attach_to_vertices(aPosition);
-	    AInt aInt;
-	    g.attach_to_vertices(aInt);
-	    Grid::VertexAttachmentAccessor<AInt> aaIntVertex(g, aInt);
+		)
+		{
+			/// grid management
+			Grid g;
+			SubsetHandler sh(g);
+			Selector sel(g);
+			sh.set_default_subset_index(0);
 
-	    Grid::VertexAttachmentAccessor<APosition> aaPos(g, aPosition);
-	    Selector sel(g);
+			AInt aInt;
+			g.attach_to_vertices(aPosition);
+			g.attach_to_vertices(aInt);
 
-		Vertex* startVertex = *g.create<RegularVertex>();
-		aaPos[startVertex] = ug::vector3(0, 0, 0); /// crack tip
+			Grid::VertexAttachmentAccessor<AInt> aaIntVertex(g, aInt);
+			Grid::VertexAttachmentAccessor<APosition> aaPos(g, aPosition);
 
-		ug::vector3 endPoint1, endPoint2;
-		endPoint1.x() = -innerThickness * cos(deg_to_rad(angle));
-		endPoint1.y() = -innerThickness * sin(deg_to_rad(angle));
-		endPoint1.z() = 0;
+			/// create crack tip and base and connect with edges
+			Vertex* crackTipVtx = *g.create<RegularVertex>();
+			aaPos[crackTipVtx] = vector3(0, 0, 0); /// crack tip
 
-		endPoint2.x() = -innerThickness * cos(-deg_to_rad(angle));
-		endPoint2.y() = -innerThickness * sin(-deg_to_rad(angle));
-		endPoint2.z() = 0;
+			vector3 crackBaseTop, crackBaseBottom;
+			crackBaseTop.x() = -innerThickness * cos(deg_to_rad(angle));
+			crackBaseTop.y() = -innerThickness * sin(deg_to_rad(angle));
+			crackBaseTop.z() = 0;
 
-		Vertex* v1 = *g.create<RegularVertex>();
-		Vertex* v2 = *g.create<RegularVertex>();
-		aaPos[v1] = endPoint1;
-		aaPos[v2] = endPoint2;
+			crackBaseBottom.x() = -innerThickness * cos(-deg_to_rad(angle));
+			crackBaseBottom.y() = -innerThickness * sin(-deg_to_rad(angle));
+			crackBaseBottom.z() = 0;
 
-		Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(startVertex, v1));
-		Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(startVertex, v2));
+			Vertex* crackBaseTopVtx = *g.create<RegularVertex>();
+			Vertex* crackBaseBottomVtx = *g.create<RegularVertex>();
+			aaPos[crackBaseTopVtx] = crackBaseTop;
+			aaPos[crackBaseBottomVtx] = crackBaseBottom;
 
-	    sh.set_default_subset_index(1);
+			*g.create<RegularEdge>(EdgeDescriptor(crackTipVtx, crackBaseTopVtx));
+			*g.create<RegularEdge>(EdgeDescriptor(crackTipVtx, crackBaseBottomVtx));
+			sh.set_default_subset_index(1);
 
-		endPoint1.x() = -crackInnerLength * cos(deg_to_rad(angle));
-		endPoint1.y() = -crackInnerLength * sin(deg_to_rad(angle));
-		endPoint1.z() = 0;
+			crackBaseTop.x() = -crackInnerLength * cos(deg_to_rad(angle));
+			crackBaseTop.y() = -crackInnerLength * sin(deg_to_rad(angle));
+			crackBaseTop.z() = 0;
+			crackBaseBottom.x() = -crackInnerLength * cos(-deg_to_rad(angle));
+			crackBaseBottom.y() = -crackInnerLength * sin(-deg_to_rad(angle));
+			crackBaseBottom.z() = 0;
+			Vertex* v3 = *g.create<RegularVertex>();
+			Vertex* v4 = *g.create<RegularVertex>();
+			aaPos[v3] = crackBaseTop;
+			aaPos[v4] = crackBaseBottom;
+			*g.create<RegularEdge>(EdgeDescriptor(crackBaseTopVtx, v3));
+			*g.create<RegularEdge>(EdgeDescriptor(crackBaseBottomVtx, v4));
 
-		endPoint2.x() = -crackInnerLength * cos(-deg_to_rad(angle));
-		endPoint2.y() = -crackInnerLength * sin(-deg_to_rad(angle));
-		endPoint2.z() = 0;
+			sh.set_default_subset_index(2);
+			crackBaseTop.x() = -crackOuterLength * cos(deg_to_rad(angle));
+			crackBaseTop.y() = -crackOuterLength * sin(deg_to_rad(angle));
+			crackBaseTop.z() = 0;
+			crackBaseBottom.x() = -crackOuterLength * cos(-deg_to_rad(angle));
+			crackBaseBottom.y() = -crackOuterLength * sin(-deg_to_rad(angle));
+			crackBaseBottom.z() = 0;
 
-		Vertex* v3 = *g.create<RegularVertex>();
-		Vertex* v4 = *g.create<RegularVertex>();
-		aaPos[v3] = endPoint1;
-		aaPos[v4] = endPoint2;
+			Vertex* v5 = *g.create<RegularVertex>();
+			Vertex* v6 = *g.create<RegularVertex>();
+			aaPos[v5] = crackBaseTop;
+			aaPos[v6] = crackBaseBottom;
+			*g.create<RegularEdge>(EdgeDescriptor(v3, v5));
+			*g.create<RegularEdge>(EdgeDescriptor(v4, v6));
 
-		Edge* e3 = *g.create<RegularEdge>(EdgeDescriptor(v1, v3));
-		Edge* e4 = *g.create<RegularEdge>(EdgeDescriptor(v2, v4));
+			AssignSubsetColors(sh);
+			SaveGridToFile(g, sh, "crack_generator_step_1.ugx");
+			sh.set_default_subset_index(3);
 
-	    sh.set_default_subset_index(2);
+			/// outermost square
+			number outerDistance = VecDistance(crackBaseTop, crackBaseBottom);
+			vector3 centerOuter = crackBaseTop;
+			centerOuter.y() = centerOuter.y() + outerDistance / 2;
+			number squareOuterDiameter = VecDistance(centerOuter, aaPos[crackTipVtx]);
+			number outerHeight = squareOuterDiameter;
+			outerHeight = 2*squareOuterDiameter - outerDistance;
 
-		endPoint1.x() = -crackOuterLength * cos(deg_to_rad(angle));
-		endPoint1.y() = -crackOuterLength * sin(deg_to_rad(angle));
-		endPoint1.z() = 0;
+			vector3 topLeft, bottomLeft, topRight, bottomRight;
+			topLeft = crackBaseTop;
+			topLeft.y() = topLeft.y() - outerHeight/2;
 
-		endPoint2.x() = -crackOuterLength * cos(-deg_to_rad(angle));
-		endPoint2.y() = -crackOuterLength * sin(-deg_to_rad(angle));
-		endPoint2.z() = 0;
+			bottomLeft = crackBaseBottom;
+			bottomLeft.y() = bottomLeft.y() + outerHeight/2;
+			Vertex* bottomLeftVtx = *g.create<RegularVertex>();
+			Vertex* bottomRightVtx = *g.create<RegularVertex>();
+			aaPos[bottomLeftVtx] = topLeft;
+			aaPos[bottomRightVtx] = bottomLeft;
+			*g.create<RegularEdge>(EdgeDescriptor(v5, bottomLeftVtx));
+			*g.create<RegularEdge>(EdgeDescriptor(v6, bottomRightVtx));
 
-		Vertex* v5 = *g.create<RegularVertex>();
-		Vertex* v6 = *g.create<RegularVertex>();
-		aaPos[v5] = endPoint1;
-		aaPos[v6] = endPoint2;
+			topRight = topLeft;
+			topRight.x() = topRight.x() + 2.0*squareOuterDiameter;
+			bottomRight = bottomLeft;
+			bottomRight.x() = bottomRight.x() + 2.0*squareOuterDiameter;
 
-		Edge* e5 = *g.create<RegularEdge>(EdgeDescriptor(v3, v5));
-		Edge* e6 = *g.create<RegularEdge>(EdgeDescriptor(v4, v6));
+			sh.set_default_subset_index(7);
+			Vertex* topRightVtx = *g.create<RegularVertex>();
+			Vertex* v10 = *g.create<RegularVertex>();
+			aaPos[topRightVtx] = topRight;
+			aaPos[v10] = bottomRight;
 
-		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_step_1.ugx");
-	    sh.set_default_subset_index(3);
+			sh.set_default_subset_index(5);
+			*g.create<RegularEdge>(EdgeDescriptor(bottomLeftVtx, topRightVtx));
+			sh.set_default_subset_index(6);
+			*g.create<RegularEdge>(EdgeDescriptor(bottomRightVtx, v10));
+			sh.set_default_subset_index(7);
+			*g.create<RegularEdge>(EdgeDescriptor(topRightVtx, v10));
 
-	    /// outermost square
-		number outerDistance = VecDistance(endPoint1, endPoint2);
+			AssignSubsetColors(sh);
+			sh.set_default_subset_index(0);
+			SaveGridToFile(g, sh, "crack_generator_step_2.ugx");
 
-		ug::vector3 centerOuter = endPoint1;
-		centerOuter.y() = centerOuter.y() + outerDistance / 2;
-		number squareOuterDiameter = VecDistance(centerOuter, aaPos[startVertex]);
-		number outerHeight = squareOuterDiameter;
-		outerHeight = 2*squareOuterDiameter - outerDistance;
+			/// innermost square
+			number innerDistance = VecDistance(aaPos[crackBaseTopVtx], aaPos[crackBaseBottomVtx]);
 
-		ug::vector3 topLeft, bottomLeft, topRight, bottomRight;
-		topLeft = endPoint1;
-		topLeft.y() = topLeft.y() - outerHeight/2;
+			vector3 centerInner = aaPos[crackBaseTopVtx];
+			centerInner.y() = centerInner.y() + innerDistance / 2;
+			number squareInnerDiameter = VecDistance(centerInner, aaPos[crackTipVtx]);
+			number innerHeight = squareInnerDiameter;
+			innerHeight = 2*squareInnerDiameter - innerDistance;
+			UG_COND_THROW(std::signbit(innerHeight), "inner height cannot be negative");
 
-		bottomLeft = endPoint2;
-		bottomLeft.y() = bottomLeft.y() + outerHeight/2;
+			topLeft = aaPos[crackBaseTopVtx];
+			topLeft.y() = topLeft.y() - innerHeight/2;
+			bottomLeft = aaPos[crackBaseBottomVtx];
+			bottomLeft.y() = bottomLeft.y() + innerHeight/2;
+			Vertex* v11 = *g.create<RegularVertex>();
+			Vertex* v12 = *g.create<RegularVertex>();
+			aaPos[v11] = topLeft;
+			aaPos[v12] = bottomLeft;
+			*g.create<RegularEdge>(EdgeDescriptor(crackBaseTopVtx, v11));
+			*g.create<RegularEdge>(EdgeDescriptor(crackBaseBottomVtx, v12));
 
-		Vertex* v7 = *g.create<RegularVertex>();
-		Vertex* v8 = *g.create<RegularVertex>();
-		aaPos[v7] = topLeft;
-		aaPos[v8] = bottomLeft;
+			topRight = topLeft;
+			topRight.x() = topRight.x() + 2*squareInnerDiameter;
+			bottomRight = bottomLeft;
+			bottomRight.x() = bottomRight.x() + 2*squareInnerDiameter;
+			Vertex* v13 = *g.create<RegularVertex>();
+			Vertex* v14 = *g.create<RegularVertex>();
+			aaPos[v13] = topRight;
+			aaPos[v14] = bottomRight;
+			*g.create<RegularEdge>(EdgeDescriptor(v11, v13));
+			*g.create<RegularEdge>(EdgeDescriptor(v12, v14));
+			*g.create<RegularEdge>(EdgeDescriptor(v13, v14));
 
-		Edge* e7 = *g.create<RegularEdge>(EdgeDescriptor(v5, v7));
-		Edge* e8 = *g.create<RegularEdge>(EdgeDescriptor(v6, v8));
+			AssignSubsetColors(sh);
+			SaveGridToFile(g, sh, "crack_generator_step_3.ugx");
 
-		topRight = topLeft;
-		topRight.x() = topRight.x() + 2.0*squareOuterDiameter;
+			/// middle square (Refine this square)
+			sh.set_default_subset_index(1);
+			number middleDistance = VecDistance(aaPos[v3], aaPos[v4]);
 
-		bottomRight = bottomLeft;
-		bottomRight.x() = bottomRight.x() + 2.0*squareOuterDiameter;
+			vector3 centerMiddle = aaPos[v3];
+			centerMiddle.y() = centerMiddle.y() + middleDistance / 2;
+			number squareMiddleDiameter = VecDistance(centerMiddle, aaPos[crackTipVtx]);
+			number middleHeight = squareMiddleDiameter;
+			middleHeight = 2*squareMiddleDiameter - middleDistance;
+			UG_COND_THROW(std::signbit(middleHeight), "middle height cannot be negative");
 
-	    sh.set_default_subset_index(7);
-		Vertex* v9 = *g.create<RegularVertex>();
-		Vertex* v10 = *g.create<RegularVertex>();
-		aaPos[v9] = topRight;
-		aaPos[v10] = bottomRight;
+			topLeft = aaPos[v3];
+			topLeft.y() = topLeft.y() - middleHeight/2;
+			bottomLeft = aaPos[v4];
+			bottomLeft.y() = bottomLeft.y() + middleHeight/2;
+			Vertex* v15 = *g.create<RegularVertex>();
+			Vertex* v16 = *g.create<RegularVertex>();
+			aaPos[v15] = topLeft;
+			aaPos[v16] = bottomLeft;
+			*g.create<RegularEdge>(EdgeDescriptor(v3, v15));
+			*g.create<RegularEdge>(EdgeDescriptor(v4, v16));
 
-	    sh.set_default_subset_index(5);
-		Edge* e9 = *g.create<RegularEdge>(EdgeDescriptor(v7, v9));
-	    sh.set_default_subset_index(6);
-		Edge* e10 = *g.create<RegularEdge>(EdgeDescriptor(v8, v10));
-	    sh.set_default_subset_index(7);
-		Edge* e11 = *g.create<RegularEdge>(EdgeDescriptor(v9, v10));
+			topRight = topLeft;
+			topRight.x() = topRight.x() + 2.0*squareMiddleDiameter;
+			bottomRight = bottomLeft;
+			bottomRight.x() = bottomRight.x() + 2.0*squareMiddleDiameter;
+			Vertex* v17 = *g.create<RegularVertex>();
+			Vertex* v18 = *g.create<RegularVertex>();
+			aaPos[v17] = topRight;
+			aaPos[v18] = bottomRight;
+			*g.create<RegularEdge>(EdgeDescriptor(v15, v17));
+			*g.create<RegularEdge>(EdgeDescriptor(v16, v18));
+			*g.create<RegularEdge>(EdgeDescriptor(v17, v18));
 
-		AssignSubsetColors(sh);
-	    sh.set_default_subset_index(0);
-		SaveGridToFile(g, sh, "crack_generator_step_2.ugx");
+			/// Rename subsets
+			EraseEmptySubsets(sh);
+			sh.subset_info(0).name = "Inner square";
+			sh.subset_info(1).name = "Middle square";
+			sh.subset_info(2).name = "Outer square";
+			sh.subset_info(3).name = "Left boundary";
+			sh.subset_info(4).name = "Back boundary";
+			sh.subset_info(5).name = "Front boundary";
+			sh.subset_info(6).name = "Right boundary";
+			AssignSubsetColors(sh);
+			SaveGridToFile(g, sh, "crack_generator_step_4.ugx");
 
-		/// innermost square
-		number innerDistance = VecDistance(aaPos[v1], aaPos[v2]);
+			/// Triangulate bottom surface
+			for (size_t i = 0; i < sh.num_subsets(); i++) {
+				SelectSubsetElements<Edge>(sel, sh, i, true);
+			}
+			TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, 7);
+			SelectSubsetElements<Face>(sel, sh, 7, true);
+			QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 10);
+			AssignSubsetColors(sh);
+			SaveGridToFile(g, sh, "crack_generator_step_5.ugx");
 
-		ug::vector3 centerInner = aaPos[v1];
-		centerInner.y() = centerInner.y() + innerDistance / 2;
-		number squareInnerDiameter = VecDistance(centerInner, aaPos[startVertex]);
-		number innerHeight = squareInnerDiameter;
-		innerHeight = 2*squareInnerDiameter - innerDistance;
+			/// Extrude towards top
+			vector3 normal = ug::vector3(0, 0, 2*squareOuterDiameter);
+			std::vector<Edge*> edges;
+			for (size_t i = 0; i < sh.num_subsets(); i++) {
+				SelectSubsetElements<Edge>(sel, sh, i, true);
+			}
+			edges.assign(sel.edges_begin(), sel.edges_end());
+			Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
+			sh.subset_info(7).name = "Bottom boundary";
 
-		UG_COND_THROW(std::signbit(innerHeight), "inner height cannot be negative");
+			/// Triangulate top surface
+			TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, 8);
+			QualityGridGeneration(g, sh.begin<Face>(8), sh.end<Face>(8), aaPos, 30.0);
+			sh.subset_info(8).name = "Top boundary";
+			AssignSubsetColors(sh);
+			SaveGridToFile(g, sh, "crack_generator_step_6.ugx");
 
-		topLeft = aaPos[v1];
-		topLeft.y() = topLeft.y() - innerHeight/2;
-		bottomLeft = aaPos[v2];
-		bottomLeft.y() = bottomLeft.y() + innerHeight/2;
-
-		Vertex* v11 = *g.create<RegularVertex>();
-		Vertex* v12 = *g.create<RegularVertex>();
-		aaPos[v11] = topLeft;
-		aaPos[v12] = bottomLeft;
-
-		Edge* e12 = *g.create<RegularEdge>(EdgeDescriptor(v1, v11));
-		Edge* e13 = *g.create<RegularEdge>(EdgeDescriptor(v2, v12));
-
-		topRight = topLeft;
-		topRight.x() = topRight.x() + 2*squareInnerDiameter;
-		bottomRight = bottomLeft;
-		bottomRight.x() = bottomRight.x() + 2*squareInnerDiameter;
-
-		Vertex* v13 = *g.create<RegularVertex>();
-		Vertex* v14 = *g.create<RegularVertex>();
-		aaPos[v13] = topRight;
-		aaPos[v14] = bottomRight;
-
-		Edge* e14 = *g.create<RegularEdge>(EdgeDescriptor(v11, v13));
-		Edge* e15 = *g.create<RegularEdge>(EdgeDescriptor(v12, v14));
-		Edge* e16 = *g.create<RegularEdge>(EdgeDescriptor(v13, v14));
-
-		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_step_3.ugx");
-
-		/// middle square
-	    sh.set_default_subset_index(1);
-		number middleDistance = VecDistance(aaPos[v3], aaPos[v4]);
-
-		ug::vector3 centerMiddle = aaPos[v3];
-		centerMiddle.y() = centerMiddle.y() + middleDistance / 2;
-		number squareMiddleDiameter = VecDistance(centerMiddle, aaPos[startVertex]);
-		number middleHeight = squareMiddleDiameter;
-		middleHeight = 2*squareMiddleDiameter - middleDistance;
-		UG_COND_THROW(std::signbit(middleHeight), "middle height cannot be negative");
-
-		topLeft = aaPos[v3];
-		topLeft.y() = topLeft.y() - middleHeight/2;
-		bottomLeft = aaPos[v4];
-		bottomLeft.y() = bottomLeft.y() + middleHeight/2;
-
-		Vertex* v15 = *g.create<RegularVertex>();
-		Vertex* v16 = *g.create<RegularVertex>();
-		aaPos[v15] = topLeft;
-		aaPos[v16] = bottomLeft;
-
-		Edge* e17 = *g.create<RegularEdge>(EdgeDescriptor(v3, v15));
-		Edge* e18 = *g.create<RegularEdge>(EdgeDescriptor(v4, v16));
-
-		topRight = topLeft;
-		topRight.x() = topRight.x() + 2.0*squareMiddleDiameter;
-		bottomRight = bottomLeft;
-		bottomRight.x() = bottomRight.x() + 2.0*squareMiddleDiameter;
-
-		Vertex* v17 = *g.create<RegularVertex>();
-		Vertex* v18 = *g.create<RegularVertex>();
-		aaPos[v17] = topRight;
-		aaPos[v18] = bottomRight;
-
-		Edge* e19 = *g.create<RegularEdge>(EdgeDescriptor(v15, v17));
-		Edge* e20 = *g.create<RegularEdge>(EdgeDescriptor(v16, v18));
-		Edge* e21 = *g.create<RegularEdge>(EdgeDescriptor(v17, v18));
-
-		EraseEmptySubsets(sh); /// necessary since previously assigned outerSquare is empty because this compromises the boundary
-
-		/// Rename subsets
-		sh.subset_info(0).name = "Inner square";
-		sh.subset_info(1).name = "Middle square";
-		sh.subset_info(2).name = "Outer square";
-		sh.subset_info(3).name = "Left boundary";
-		sh.subset_info(4).name = "Back boundary";
-		sh.subset_info(5).name = "Front boundary";
-		sh.subset_info(6).name = "Right boundary";
-		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_step_4.ugx");
-
-		/// Triangulate bottom surface
-		for (size_t i = 0; i < sh.num_subsets(); i++) {
-			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
+			/// Tetrahedralize whole grid
+			Tetrahedralize(g, 5, false, false, aPosition, 1);
+			AssignSubsetColors(sh);
+			SaveGridToFile(g, sh, "crack_generator_step_7.ugx");
 		}
-		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, 7);
-		SelectSubsetElements<ug::Face>(sel, sh, 7, true);
-		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 10);
-		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_step_5.ugx");
-
-		/// Extrude towards top
-		ug::vector3 normal = ug::vector3(0, 0, 2*squareOuterDiameter);
-		std::vector<Edge*> edges;
-		for (size_t i = 0; i < sh.num_subsets(); i++) {
-				SelectSubsetElements<ug::Edge>(sel, sh, i, true);
-		}
-		edges.assign(sel.edges_begin(), sel.edges_end());
-		Extrude(g, NULL, &edges, NULL, normal, aaPos, EO_CREATE_FACES, NULL);
-		sh.subset_info(7).name = "Bottom boundary";
-
-		/// Triangulate top surface
-		TriangleFill_SweepLine(g, edges.begin(), edges.end(), aPosition, aInt, &sh, 8);
-		QualityGridGeneration(g, sh.begin<Face>(8), sh.end<Face>(8), aaPos, 30.0);
-		sh.subset_info(8).name = "Top boundary";
-		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_step_6.ugx");
-
-		/// Tetrahedralize whole grid
-		Tetrahedralize(g, 5, false, false, aPosition, 1);
-		AssignSubsetColors(sh);
-		SaveGridToFile(g, sh, "crack_generator_step_7.ugx");
-	}
 
 	////////////////////////////////////////////////////////////////////////////////
 	/// CREATE_RECT
 	////////////////////////////////////////////////////////////////////////////////
 	void create_rect
 	(
-		ug::vector3 bottomLeft,
-		ug::vector3 bottomRight,
-		ug::vector3 leftMDLayer,
-		ug::vector3 rightMDLayer,
-		ug::vector3 topLeft,
-		ug::vector3 topRight,
+		vector3 bottomLeft,
+		vector3 bottomRight,
+		vector3 leftMDLayer,
+		vector3 rightMDLayer,
+		vector3 topLeft,
+		vector3 topRight,
 		Grid& g,
 		SubsetHandler& sh,
 		Grid::VertexAttachmentAccessor<APosition>& aaPos,
@@ -289,13 +270,14 @@ namespace ug {
 		Selector& sel,
 		number depth,
 		size_t si_offset,
-		std::vector<ug::Vertex*>& verts
-	) {
+		std::vector<Vertex*>& verts
+	)
+	{
 		std::stringstream step;
+
 		sh.set_default_subset_index(si_offset);
 		Vertex* bottomLeftVertex = *g.create<RegularVertex>();
 		aaPos[bottomLeftVertex] = bottomLeft;
-
 		Vertex* bottomRightVertex = *g.create<RegularVertex>();
 		aaPos[bottomRightVertex] = bottomRight;
 
@@ -339,13 +321,13 @@ namespace ug {
 
 		number leftMDLayertoRightMDLayer = VecDistance(leftMDLayer, rightMDLayer);
 		number pos = 0;
-		std::vector<ug::Vertex*> vertices;
+		std::vector<Vertex*> vertices;
 		vertices.push_back(topLeftVertex);
 		/// REFINE HORIZONTAL
 		while (pos < leftMDLayertoRightMDLayer) {
 			Vertex* v3 = *g.create<RegularVertex>();
-			ug::vector3 temp3 = topLeft;
-			ug::vector3 dir;
+			vector3 temp3 = topLeft;
+			vector3 dir;
 			VecSubtract(dir, rightMDLayer, leftMDLayer);
 			VecNormalize(dir, dir);
 			VecScaleAdd(temp3, 1, temp3, pos, dir);
@@ -365,17 +347,17 @@ namespace ug {
 		number leftMDLayerToTopLeft = VecDistance(leftMDLayer, topLeft);
 		pos = 0;
 		sel.clear();
-		std::vector<ug::Vertex*> vertices2;
-		std::vector<ug::Vertex*> vertices3;
+		std::vector<Vertex*> vertices2;
+		std::vector<Vertex*> vertices3;
 		vertices.push_back(leftMDLayerVertex);
 		vertices2.push_back(rightMDLayerVertex);
 		while (pos < leftMDLayerToTopLeft) {
 			pos+=h_r_0;
 			Vertex* v1 = *g.create<RegularVertex>();
 			Vertex* v2 = *g.create<RegularVertex>();
-			ug::vector3 temp1 = leftMDLayer;
-			ug::vector3 temp2 = rightMDLayer;
-			ug::vector3 dir;
+			vector3 temp1 = leftMDLayer;
+			vector3 temp2 = rightMDLayer;
+			vector3 dir;
 			VecSubtract(dir, topLeft, leftMDLayer);
 			VecNormalize(dir, dir);
 			VecScaleAdd(temp1, 1, temp1, pos, dir);
@@ -385,8 +367,8 @@ namespace ug {
 			number pos2=0;
 			vertices3.push_back(v1);
 			while (pos2 < leftMDLayertoRightMDLayer) {
-				ug::vector3 temp3;
-				ug::vector3 dir;
+				vector3 temp3;
+				vector3 dir;
 				VecSubtract(dir, rightMDLayer, leftMDLayer);
 				VecNormalize(dir, dir);
 				Vertex* v3 = *g.create<RegularVertex>();
@@ -425,9 +407,9 @@ namespace ug {
 		while (pos < leftMDLayertoRightMDLayer) {
 			Vertex* v1 = *g.create<RegularVertex>();
 			Vertex* v2 = *g.create<RegularVertex>();
-			ug::vector3 temp1 = leftMDLayer;
-			ug::vector3 temp2 = bottomLeft;
-			ug::vector3 dir;
+			vector3 temp1 = leftMDLayer;
+			vector3 temp2 = bottomLeft;
+			vector3 dir;
 			VecSubtract(dir, rightMDLayer, leftMDLayer);
 			VecNormalize(dir, dir);
 			VecScaleAdd(temp1, 1, temp1, pos, dir);
@@ -443,17 +425,17 @@ namespace ug {
 		/// REFINE BD DOMAIN VERTICAL AND HORIZONTAL
 		pos = 0;
 		number distance = VecDistance(leftMDLayer, bottomLeft);
-		std::vector<ug::Vertex*> vertices4;
-		std::vector<ug::Vertex*> vertices5;
-		std::vector<ug::Vertex*> vertices6;
+		std::vector<Vertex*> vertices4;
+		std::vector<Vertex*> vertices5;
+		std::vector<Vertex*> vertices6;
 		vertices4.push_back(bottomLeftVertex);
 		vertices5.push_back(bottomRightVertex);
 		while (pos < distance) {
 			Vertex* v3 = *g.create<RegularVertex>();
 			Vertex* v4 = *g.create<RegularVertex>();
-			ug::vector3 temp3 = bottomLeft;
-			ug::vector3 temp4 = bottomRight;
-			ug::vector3 dir;
+			vector3 temp3 = bottomLeft;
+			vector3 temp4 = bottomRight;
+			vector3 dir;
 			VecSubtract(dir, leftMDLayer, bottomLeft);
 			VecNormalize(dir, dir);
 			VecScaleAdd(temp3, 1, temp3, pos, dir);
@@ -468,8 +450,8 @@ namespace ug {
 			vertices6.push_back(v3);
 			while (pos2 < dist) {
 				Vertex* v5 = *g.create<RegularVertex>();
-				ug::vector3 temp5 = temp3;
-				ug::vector3 dir;
+				vector3 temp5 = temp3;
+				vector3 dir;
 				VecSubtract(dir, rightMDLayer, leftMDLayer);
 				VecNormalize(dir, dir);
 				VecScaleAdd(temp5, 1, temp5, pos2, dir);
@@ -521,85 +503,81 @@ namespace ug {
 
 		verts.push_back(bottomLeftVertex);
 		verts.push_back(bottomRightVertex);
-		}
+	}
 
-		////////////////////////////////////////////////////////////////////////////////
-		/// BUILDSIMPLECRACK
-		////////////////////////////////////////////////////////////////////////////////
-		void BuildSimpleCrack
-		(
-			number height,
-			number width,
-			number depth,
-			number thickness,
-			number spacing,
-			number r_0,
-			number h
-		) {
-		/// Algorithm:
-		/// 1. Create line from bottomLeft to bottomRight
-		/// 2. Create line from bottomLeft to leftMDLayer and leftMDLayer to topLeft
-		/// 3. Create line from bottomRight to rightMDLayer and rightMDLayer to topRight
-		/// 4. Create line from rightMDLayer to leftMDLayer and topRight to topLeft
-		UG_COND_THROW(thickness >= height || thickness >= width || thickness >= depth, "Thickness of bridging domain layers can't be larger then height of whole geometry.");
+	////////////////////////////////////////////////////////////////////////////////
+	/// BuildSimpleCrack
+	////////////////////////////////////////////////////////////////////////////////
+	void BuildSimpleCrack
+	(
+		number height,
+		number width,
+		number depth,
+		number thickness,
+		number spacing,
+		number r_0,
+		number h
+	)
+	{
+		UG_COND_THROW(thickness >= height || thickness >= width || thickness >= depth,
+				"Thickness of bridging domain layers can't be larger then height of whole geometry.");
 		if (fabs(fmod(width, h*r_0)) > SMALL || fabs(fmod(height, h*r_0)) > SMALL || fabs(fmod(depth, h*r_0)) > SMALL) {
 			UG_LOGN("Width, height, or depth not evenly divisable by h*r_0, expect on borders non uniform spacing.")
 		}
 
+		/// grid management
 		Grid g;
 	    SubsetHandler sh(g);
 	    sh.set_default_subset_index(0);
-	    g.attach_to_vertices(aPosition);
+	    Selector sel(g);
 	    AInt aInt;
+	    g.attach_to_vertices(aPosition);
 	    g.attach_to_vertices(aInt);
 	    Grid::VertexAttachmentAccessor<AInt> aaIntVertex(g, aInt);
-
 	    Grid::VertexAttachmentAccessor<APosition> aaPos(g, aPosition);
-	    Selector sel(g);
 
-	    //// First rectangle
-   		ug::vector3 bottomLeft = ug::vector3(0, 0, 0);
-		ug::vector3 bottomRight = ug::vector3(width, 0, 0);
-		ug::vector3 leftMDLayer = ug::vector3(0, thickness, 0);
-		ug::vector3 rightMDLayer = ug::vector3(width, thickness, 0);
-		ug::vector3 topLeft = ug::vector3(0, height, 0);
-		ug::vector3 topRight = ug::vector3(width, height, 0);
-		std::vector<std::pair<ug::vector3, ug::vector3> > boxes;
+	    //// first (upper) rectangle
+   		vector3 bottomLeft = ug::vector3(0, 0, 0);
+		vector3 bottomRight = ug::vector3(width, 0, 0);
+		vector3 leftMDLayer = ug::vector3(0, thickness, 0);
+		vector3 rightMDLayer = ug::vector3(width, thickness, 0);
+		vector3 topLeft = ug::vector3(0, height, 0);
+		vector3 topRight = ug::vector3(width, height, 0);
+		std::vector<std::pair<vector3, ug::vector3> > boxes;
 		boxes.push_back(std::make_pair(leftMDLayer, topRight));
 		boxes.push_back(std::make_pair(bottomLeft, rightMDLayer));
 		size_t si_offset = 0;
-		std::vector<ug::Vertex*> verts;
+		std::vector<Vertex*> verts;
 		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, h*r_0, sel, depth, si_offset, verts);
 		si_offset = 3;
 
-		/// Second rectangle
-   		bottomLeft = ug::vector3(0, -spacing, 0);
-		bottomRight = ug::vector3(width, -spacing, 0);
-		leftMDLayer = ug::vector3(0, -spacing-thickness, 0);
-		rightMDLayer = ug::vector3(width, -spacing-thickness, 0);
-		topLeft = ug::vector3(0, -spacing-height, 0);
-		topRight = ug::vector3(width, -spacing-height, 0);
+		/// Second (lower) rectangle
+   		bottomLeft = vector3(0, -spacing, 0);
+		bottomRight = vector3(width, -spacing, 0);
+		leftMDLayer = vector3(0, -spacing-thickness, 0);
+		rightMDLayer = vector3(width, -spacing-thickness, 0);
+		topLeft = vector3(0, -spacing-height, 0);
+		topRight = vector3(width, -spacing-height, 0);
 		boxes.push_back(std::make_pair(topLeft, rightMDLayer));
 		boxes.push_back(std::make_pair(leftMDLayer, bottomRight));
 		create_rect(bottomLeft, bottomRight, leftMDLayer, rightMDLayer, topLeft, topRight, g, sh, aaPos, aInt, h*r_0, sel, depth, si_offset, verts);
 
-		/// Connect the two rectangles
+		/// Connect the lower and upper rectangle
 		sh.set_default_subset_index(2*si_offset);
-		ug::Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(verts[0], verts[2]));
-		ug::Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(verts[1], verts[3]));
-		boxes.push_back(std::make_pair(ug::vector3(0, -spacing, 0), ug::vector3(width, 0, 0)));
+		Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(verts[0], verts[2]));
+		Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(verts[1], verts[3]));
+		boxes.push_back(std::make_pair(vector3(0, -spacing, 0), ug::vector3(width, 0, 0)));
 
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_8.ugx");
 	    RemoveDoubles<3>(g, g.begin<Vertex>(), g.end<Vertex>(), aaPos, 0.0001);
 
 		/// Triangulate bottom
-	    /// TODO: Triangulate bottom manually by hand to achieve optimal uniform grid orientation?
+	    /// TODO: Triangulate bottom manually by hand to achieve optimal uniform grid orientation
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
-			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
+			SelectSubsetElements<Edge>(sel, sh, i, true);
 		}
 		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, sh.num_subsets());
-
 		AssignSubsetColors(sh);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_9.ugx");
 
@@ -610,7 +588,7 @@ namespace ug {
 			SelectSubsetElements<Face>(sel, sh, siFaces, true);
 			Selector::traits<Face>::iterator fit = sel.faces_begin();
 			Selector::traits<Face>::iterator fit_end = sel.faces_end();
-			ug::vector3 min, max;
+			vector3 min, max;
 			min = boxes[i].first;
 			max = boxes[i].second;
 			size_t si = sh.num_subsets();
@@ -630,16 +608,16 @@ namespace ug {
 		UG_LOGN("Triangulate bottom surface...")
 		/// Retriangulate all
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
-			SelectSubsetElements<ug::Face>(sel, sh, i, true);
+			SelectSubsetElements<Face>(sel, sh, i, true);
 		}
 		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
 		SaveGridToFile(g, sh, "crack_generator_simple_step_10.ugx");
 
 		/// Extrude all in steps to ensure uniformity we use h*r_0
-		ug::vector3 normal = ug::vector3(0, 0, depth);
+		vector3 normal = ug::vector3(0, 0, depth);
 		std::vector<Edge*> edges;
 		for (size_t i = 0; i < sh.num_subsets(); i++) {
-			SelectSubsetElements<ug::Edge>(sel, sh, i, true);
+			SelectSubsetElements<Edge>(sel, sh, i, true);
 		}
 		edges.assign(sel.edges_begin(), sel.edges_end());
 		VecScale(normal, normal, 0.5/h*r_0);
@@ -666,7 +644,7 @@ namespace ug {
 			SelectSubsetElements<Face>(sel, sh, siFaces, true);
 			Selector::traits<Face>::iterator fit = sel.faces_begin();
 			Selector::traits<Face>::iterator fit_end = sel.faces_end();
-			ug::vector3 min, max;
+			vector3 min, max;
 			min = boxes[i].first;
 			min.z() = depth;
 			max = boxes[i].second;
@@ -686,7 +664,8 @@ namespace ug {
 		SaveGridToFile(g, sh, "crack_generator_simple_step_13.ugx");
 
 		UG_LOGN("Tetrahedralize...")
-		/// Tetrahedralize whole grid (Note: If we don't pre-refine Tetgen brakes down and disrespects the boundaries somehow)
+		/// Tetrahedralize whole grid (TODO: If we don't pre-refine Tetgen breaks
+		/// down and disrespects the boundaries somehow)
 		Tetrahedralize(g, 5, false, true, aPosition, 1);
 
 		EraseEmptySubsets(sh);
@@ -699,7 +678,7 @@ namespace ug {
 			SelectSubsetElements<Volume>(sel, sh, siFaces, true);
 			Selector::traits<Volume>::iterator fit = sel.volumes_begin();
 			Selector::traits<Volume>::iterator fit_end = sel.volumes_end();
-			ug::vector3 min, max;
+			vector3 min, max;
 			min = boxes[i].first;
 			min.z() = -depth;
 			max = boxes[i].second;
@@ -715,6 +694,7 @@ namespace ug {
 			sel2.clear();
 		}
 
+		/// Set subset names
 		sh.subset_info(0).name = "FE1";
 		sh.subset_info(1).name = "BD1";
 		sh.subset_info(2).name = "FE2";
@@ -726,9 +706,9 @@ namespace ug {
 		SelectSubsetElements<Face>(sel, sh, 0, true);
 		Selector::traits<Face>::iterator fit = sel.faces_begin();
 		Selector::traits<Face>::iterator fit_end = sel.faces_end();
-		ug::vector3 min, max;
-		min = ug::vector3(0, height, 0);
-		max = ug::vector3(width, height, depth);
+		vector3 min, max;
+		min = vector3(0, height, 0);
+		max = vector3(width, height, depth);
 		Selector sel2(g);
 		for (; fit != fit_end; ++fit) {
 			if(BoxBoundProbe(CalculateCenter(*fit, aaPos), min, max)) {
@@ -744,13 +724,14 @@ namespace ug {
 		SelectSubsetElements<Face>(sel, sh, 2, true);
 		fit = sel.faces_begin();
 		fit_end = sel.faces_end();
-		min = ug::vector3(0, -height-spacing, 0);
-		max = ug::vector3(width, -height-spacing, depth);
+		min = vector3(0, -height-spacing, 0);
+		max = vector3(width, -height-spacing, depth);
 		for (; fit != fit_end; ++fit) {
 			if(BoxBoundProbe(CalculateCenter(*fit, aaPos), min, max)) {
 				sel2.select(*fit);
 			}
 		}
+
 		CloseSelection(sel2);
 		AssignSelectionToSubset(sel2, sh, sh.num_subsets());
 		sel2.clear();
@@ -759,7 +740,6 @@ namespace ug {
 		sh.subset_info(5).name = "Top";
 		sh.subset_info(6).name = "Bottom";
 		SaveGridToFile(g, sh, "crack_generator_simple_step_15.ugx");
-
 		sel.clear();
 
 		/// Save final grid after optimization
