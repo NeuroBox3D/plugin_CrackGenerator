@@ -20,7 +20,7 @@ before_script:
  - travis_wait 800 make
 
 script:
- - https://github.com/NeuroBox3D/app_CrackGenerator.git app_CrackGenerator
+ - git clone https://github.com/NeuroBox3D/app_CrackGenerator.git app_CrackGenerator
  - ../bin/ugshell -ex app_CrackGenerator/build_crack.lua
  
 after_success:
