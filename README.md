@@ -1,6 +1,9 @@
 # CrackGenerator
 The CrackGenerator ug4 plugin.
 
+# Build
+For now please follow instructions in `appveyor.yml` for Windows and `travis.yml` for OSX/Linux.
+
 # CI
 OSX/Linux [![OSX/Linux Build Status](https://travis-ci.org/NeuroBox3D/plugin_CrackGenerator.svg?branch=master)](https://travis-ci.org/NeuroBox3D/plugin_CrackGenerator)
 
