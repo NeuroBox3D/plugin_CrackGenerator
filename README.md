@@ -13,4 +13,4 @@ Windows [![Build status](https://ci.appveyor.com/api/projects/status/5v2wkne04y2
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](http://www.gnu.org/licenses/lgpl-3.0)
 
 # TODOs
-Refactoring.
+Refactoring and integration test.
