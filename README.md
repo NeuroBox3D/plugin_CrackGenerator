@@ -13,5 +13,4 @@ Windows [![Build status](https://ci.appveyor.com/api/projects/status/5v2wkne04y2
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](http://www.gnu.org/licenses/lgpl-3.0)
 
 # TODOs
-1. Refactor some more variable names to something more meaningful. Code could need some more shortening too.
-2. Add tests to Appveyor and Travis build, e.g. run the build_crack.lua script with ugshell.
+Refactoring.
