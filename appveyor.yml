@@ -3,7 +3,6 @@ image: Visual Studio 2017
 platform:
   - x64
 
-
 configuration:
   - Release
 
@@ -15,6 +14,8 @@ build_script:
   - git clone https://www.github.com/UG4/ughub
   - ughub/ughub init
   - ughub/ughub addsource neurobox https://github.com/NeuroBox3D/neurobox-packages.git
-  - ughub/ughub install ugcore CrackGenerator
-  - cmake -DCMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE=x64 -DTARGET=ugshell -DLAPACK=OFF -DBLAS=OFF -DDIM="3" -DCrackGenerator=ON  -DCOMPILE_INFO=OFF -DSTATIC_BUILD=ON -DEMBEDDED_PLUGINS=ON  -G"Visual Studio 15 2017 Win64"
+  - ughub/ughub install ugcore CrackGenerator tetgen
+  
+  - cmake -DCMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE=x64 -DTARGET=ugshell -Dtetgen=ON -DLAPACK=OFF -DBLAS=OFF -DDIM="3" -DCrackGenerator=ON  -DCOMPILE_INFO=OFF -DSTATIC_BUILD=ON -DEMBEDDED_PLUGINS=ON  -G"Visual Studio 15 2017 Win64"
   - MSBuild .\ug4.sln  /property:Configuration=Release /property:Platform=x64
+  
