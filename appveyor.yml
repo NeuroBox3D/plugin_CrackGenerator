@@ -19,5 +19,6 @@ build_script:
   - cmake -DCMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE=x64 -DTARGET=ugshell -Dtetgen=ON -DLAPACK=OFF -DBLAS=OFF -DDIM="3" -DCrackGenerator=ON  -DCOMPILE_INFO=OFF -DSTATIC_BUILD=ON -DEMBEDDED_PLUGINS=ON  -G"Visual Studio 15 2017 Win64"
   - MSBuild .\ug4.sln  /property:Configuration=Release /property:Platform=x64
   - cd bin\
-  - ugshell.exe -call "print(\"it works\")"
+  - git clone https://github.com/NeuroBox3D/app_CrackGenerator.git app_CrackGenerator
+  - ugshell.exe -ex app_CrackGenerator\build_crack.lua
   
