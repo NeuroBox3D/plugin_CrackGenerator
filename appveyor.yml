@@ -20,5 +20,4 @@ build_script:
   - MSBuild .\ug4.sln  /property:Configuration=Release /property:Platform=x64
   - cd bin\
   - git clone https://github.com/NeuroBox3D/app_CrackGenerator.git app_CrackGenerator
-  - ugshell.exe -ex app_CrackGenerator\build_crack.lua
   
