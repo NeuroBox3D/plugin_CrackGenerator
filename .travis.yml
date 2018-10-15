@@ -3,17 +3,28 @@ dist: trusty
 language: cpp
 compiler: clang
 
+# builds matrix
+matrix:
+  include:
+    - os: linux
+    - os: osx
+      osx_image: xcode8
+
 before_script:
  - gem install travis
  - git clone https://www.github.com/UG4/ughub
  - ughub/ughub init
  - ughub/ughub addsource neurobox https://github.com/NeuroBox3D/neurobox-packages.git
- - ughub/ughub install ugcore CrackGenerator
- - mkdir build && cd build && cmake ../ -DTARGET=vrl -DLAPACK=OFF -DBLAS=OFF -DDIM="3" -DCOMPILE_INFO=OFF -DCrackGenerator=ON
+ - ughub/ughub install ugcore CrackGenerator tetgen
+ - mkdir build && cd build && cmake ../ -Dtetgen=ON -DTARGET=ugshell -DLAPACK=OFF -DBLAS=OFF -DDIM="3" -DCOMPILE_INFO=OFF -DCrackGenerator=ON
  - travis_wait 800 make
 
 script:
- -
+ - git clone https://github.com/NeuroBox3D/app_CrackGenerator.git app_CrackGenerator
+ - cd ../
+# - echo "$PWD/scripts/shell/ugbash" >> ~/.bashrc
+# - source ~/.bashrc
+- ./bin/ugshell -ex app_CrackGenerator/build_crack.lua
  
 after_success:
  -
