@@ -21,8 +21,8 @@ before_script:
 
 script:
  - git clone https://github.com/NeuroBox3D/app_CrackGenerator.git app_CrackGenerator
- - cd bin/
- - ./ugshell -ex app_CrackGenerator/build_crack.lua
+ - cd ../
+ - ./bin/ugshell -ex build/app_CrackGenerator/build_crack.lua
  
 after_success:
  -
