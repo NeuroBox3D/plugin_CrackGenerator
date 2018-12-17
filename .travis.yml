@@ -16,8 +16,9 @@ before_script:
  - ughub/ughub init
  - ughub/ughub addsource neurobox https://github.com/NeuroBox3D/neurobox-packages.git
  - ughub/ughub install ugcore CrackGenerator tetgen ProMesh
- - mkdir build && cd build && cmake ../ -Dtetgen=ON -DProMesh=ON -DTARGET=ugshell -DLAPACK=OFF -DBLAS=OFF -DDIM="3" -DCOMPILE_INFO=OFF -DCrackGenerator=ON -DEMBEDDED_PLUGINS=ON
+ - mkdir build && cd build && cmake ../ -Dtetgen=ON -DProMesh=ON -DTARGET=ugshell -DLAPACK=OFF -DBLAS=OFF -DDIM="3" -DCOMPILE_INFO=OFF -DCrackGenerator=ON -DCMAKE_BUILD_TYPE=Release -DPARALLEL=OFF -DSTATIC_BUILD=ON
  - travis_wait 800 make
+
 
 script:
  - git clone https://github.com/NeuroBox3D/app_CrackGenerator.git app_CrackGenerator
