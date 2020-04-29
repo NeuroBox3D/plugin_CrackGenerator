@@ -219,7 +219,7 @@ namespace ug {
 			SaveGridToFile(g, sh, "crack_generator_step_4.ugx");
 
 			/// Triangulate bottom surface
-			for (size_t i = 0; i < sh.num_subsets(); i++) {
+			for (int i = 0; i < sh.num_subsets(); i++) {
 				SelectSubsetElements<Edge>(sel, sh, i, true);
 			}
 			TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, 7);
@@ -231,7 +231,7 @@ namespace ug {
 			/// Extrude towards top
 			vector3 normal = ug::vector3(0, 0, 2*squareOuterDiameter);
 			std::vector<Edge*> edges;
-			for (size_t i = 0; i < sh.num_subsets(); i++) {
+			for (int i = 0; i < sh.num_subsets(); i++) {
 				SelectSubsetElements<Edge>(sel, sh, i, true);
 			}
 			edges.assign(sel.edges_begin(), sel.edges_end());
@@ -557,7 +557,7 @@ namespace ug {
 
 		/// Triangulate bottom
 	    /// TODO: Triangulate bottom manually by hand to achieve optimal uniform grid orientation
-		for (size_t i = 0; i < sh.num_subsets(); i++) {
+		for (int i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<Edge>(sel, sh, i, true);
 		}
 		TriangleFill_SweepLine(g, sel.edges_begin(), sel.edges_end(), aPosition, aInt, &sh, sh.num_subsets());
@@ -590,7 +590,7 @@ namespace ug {
 		sel.clear();
 		UG_LOGN("Triangulate bottom surface...")
 		/// Retriangulate all
-		for (size_t i = 0; i < sh.num_subsets(); i++) {
+		for (int i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<Face>(sel, sh, i, true);
 		}
 		QualityGridGeneration(g, sel.faces_begin(), sel.faces_end(), aaPos, 30);
@@ -599,7 +599,7 @@ namespace ug {
 		/// Extrude all in steps to ensure uniformity we use h*r_0
 		vector3 normal = ug::vector3(0, 0, depth);
 		std::vector<Edge*> edges;
-		for (size_t i = 0; i < sh.num_subsets(); i++) {
+		for (int i = 0; i < sh.num_subsets(); i++) {
 			SelectSubsetElements<Edge>(sel, sh, i, true);
 		}
 		edges.assign(sel.edges_begin(), sel.edges_end());
