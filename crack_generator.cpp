@@ -547,8 +547,8 @@ namespace ug {
 
 		/// Connect the lower and upper rectangle
 		sh.set_default_subset_index(2*si_offset);
-		Edge* e1 = *g.create<RegularEdge>(EdgeDescriptor(verts[0], verts[2]));
-		Edge* e2 = *g.create<RegularEdge>(EdgeDescriptor(verts[1], verts[3]));
+		*g.create<RegularEdge>(EdgeDescriptor(verts[0], verts[2]));
+		*g.create<RegularEdge>(EdgeDescriptor(verts[1], verts[3]));
 		boxes.push_back(std::make_pair(vector3(0, -spacing, 0), ug::vector3(width, 0, 0)));
 
 		AssignSubsetColors(sh);
